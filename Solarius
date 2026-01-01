@@ -4,11 +4,9 @@ local UserInputService = game:GetService("UserInputService")
 local VirtualUser = game:GetService("VirtualUser")
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TextChatService = game:GetService("TextChatService")
 local TeleportService = game:GetService("TeleportService")
 local StarterGui = game:GetService("StarterGui")
 local Lighting = game:GetService("Lighting")
-local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
@@ -16,7 +14,7 @@ local Camera = workspace.CurrentCamera
 local Mouse = LocalPlayer:GetMouse()
 
 local hiddenfling = false
-local flingPower = 10000
+local flingPower = 15000 
 local loopFlingTarget = nil
 local loopFlingConnection = nil
 
@@ -25,13 +23,11 @@ local invis_enabled = true
 local invis_on = false
 local current_method = 1
 local invis_transparency = 0.5
-local method1_speed = 1
-local voidLevelYThreshold = -500
 local seatTeleportPosition = Vector3.new(0, 9000, 0)
 local currentSeatPosition = nil
 local seatHeartbeat
 
-local flySettings = {flying = false, speed = 50, climb = 0}
+local flySettings = {flying = false, speed = 50}
 local noclip = false
 local espEnabled = false
 local infJump = false
@@ -49,6 +45,7 @@ local carpetMode = false
 local orbitAngle = 0
 local auraEnabled = false
 local auraParts = {}
+local attributeConnection = nil
 
 local waypoints = {}
 local waypointFile = "Venus_Waypoints.json"
@@ -100,7 +97,7 @@ StatusGui.IgnoreGuiInset = true
 local StatusFrame = Instance.new("Frame")
 StatusFrame.Size = UDim2.new(0, 300, 0, 30)
 StatusFrame.Position = UDim2.new(0.5, -150, 0, 0)
-StatusFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+StatusFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 StatusFrame.BorderSizePixel = 0
 StatusFrame.Parent = StatusGui
 
@@ -358,9 +355,9 @@ end)
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Venus Ultimate",
+   Name = "Venus",
    Icon = 0,
-   LoadingTitle = "Venus Ultimate",
+   LoadingTitle = "Venus Client",
    LoadingSubtitle = "Titan Edition",
    Theme = "Ocean",
    DisableRayfieldPrompts = false,
@@ -681,9 +678,13 @@ local function initSilentListener(master)
     if not master then return end
     if not master.Character then return end
     
-    master.Character.AttributeChanged:Connect(function(attr)
+    if attributeConnection then attributeConnection:Disconnect() end
+    
+    attributeConnection = master.Character.AttributeChanged:Connect(function(attr)
         if attr == "VenusCmd" then
             local raw = master.Character:GetAttribute("VenusCmd")
+            if not raw then return end
+            
             local split = string.split(raw, " ")
             local cmd = split[1]
             local args = split[2]
@@ -694,6 +695,26 @@ local function initSilentListener(master)
                 executeCommand(cmd, args)
             end
         end
+    end)
+    
+    master.CharacterAdded:Connect(function(newChar)
+        if attributeConnection then attributeConnection:Disconnect() end
+        attributeConnection = newChar.AttributeChanged:Connect(function(attr)
+            if attr == "VenusCmd" then
+                local raw = newChar:GetAttribute("VenusCmd")
+                if not raw then return end
+                
+                local split = string.split(raw, " ")
+                local cmd = split[1]
+                local args = split[2]
+                local id = split[3] 
+                
+                if cmd and id ~= LocalPlayer:GetAttribute("LastCmdID") then
+                    LocalPlayer:SetAttribute("LastCmdID", id)
+                    executeCommand(cmd, args)
+                end
+            end
+        end)
     end)
 end
 
@@ -924,30 +945,11 @@ local ChatSection = ChatTab:CreateSection("Server Chat")
 
 local ChatScroll = nil
 
-local function updateChatLog()
-    if not ChatScroll then return end
-end
-
 local function onChat(plr, msg)
     local time = os.date("%H:%M:%S")
     local fmt = "[" .. time .. "] " .. plr.Name .. ": " .. msg
     table.insert(chatLogs, 1, fmt)
     if #chatLogs > maxLogs then table.remove(chatLogs, #chatLogs) end
-    if ChatScroll then
-        ChatScroll:ClearAllChildren()
-        local uiList = Instance.new("UIListLayout")
-        uiList.Parent = ChatScroll
-        for _, log in pairs(chatLogs) do
-            local l = Instance.new("TextLabel")
-            l.Text = log
-            l.Size = UDim2.new(1, 0, 0, 20)
-            l.BackgroundTransparency = 1
-            l.TextColor3 = Color3.new(1,1,1)
-            l.TextXAlignment = Enum.TextXAlignment.Left
-            l.Parent = ChatScroll
-        end
-        ChatScroll.CanvasSize = UDim2.new(0, 0, 0, #chatLogs * 20)
-    end
 end
 
 for _, p in pairs(Players:GetPlayers()) do
