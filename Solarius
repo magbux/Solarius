@@ -4,930 +4,738 @@ local UserInputService = game:GetService("UserInputService")
 local VirtualUser = game:GetService("VirtualUser")
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TeleportService = game:GetService("TeleportService")
-local StarterGui = game:GetService("StarterGui")
-local Lighting = game:GetService("Lighting")
-local TweenService = game:GetService("TweenService")
-local CoreGui = game:GetService("CoreGui")
-
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
-local Mouse = LocalPlayer:GetMouse()
-
-local VenusSettings = {
-    FlingPower = 20000,
-    FlySpeed = 50,
-    WalkSpeed = 16,
-    JumpPower = 50,
-    SpinSpeed = 20,
-    AutoStandDistance = 3,
-    InvisTransparency = 0.5,
-    VoidThreshold = -500
-}
-
-local State = {
-    Flinging = false,
-    LoopFlinging = false,
-    LoopFlingTarget = nil,
-    InvisActive = false,
-    SeatActive = false,
-    Flying = false,
-    Noclipping = false,
-    InfJump = false,
-    Spinning = false,
-    Aura = false,
-    ESP = false,
-    Fullbright = false,
-    SubordinateMode = false,
-    Controller = nil,
-    StandMode = false,
-    OrbitMode = false,
-    CarpetMode = false,
-    IsBusy = false
-}
-
-local Connections = {}
-local StandPlatform = nil
-local AuraParts = {}
-local OrbitAngle = 0
-local ChatLogs = {}
-local Waypoints = {}
-local SavedScripts = {}
-
-local FILES = {
-    Scripts = "Venus_Scripts.json",
-    Waypoints = "Venus_Waypoints.json"
-}
-
-if isfile and isfile(FILES.Scripts) then
-    local s, r = pcall(function() return HttpService:JSONDecode(readfile(FILES.Scripts)) end)
-    if s then SavedScripts = r end
-end
-
-if isfile and isfile(FILES.Waypoints) then
-    local s, r = pcall(function() return HttpService:JSONDecode(readfile(FILES.Waypoints)) end)
-    if s then Waypoints = r end
-end
-
-local function SaveData(file, data)
-    if writefile then
-        writefile(file, HttpService:JSONEncode(data))
-    end
-end
-
+local hiddenfling = false
+local flingPower = 10000
+-- // FLING PHYSICS \\ --
 if not ReplicatedStorage:FindFirstChild("juisdfj0i32i0eidsuf0iok") then
-    local d = Instance.new("Decal")
-    d.Name = "juisdfj0i32i0eidsuf0iok"
-    d.Parent = ReplicatedStorage
+local detection = Instance.new("Decal")
+detection.Name = "juisdfj0i32i0eidsuf0iok"
+detection.Parent = ReplicatedStorage
 end
-
-local function FlingPhysics()
-    local c = LocalPlayer.Character
-    local root = c and c:FindFirstChild("HumanoidRootPart")
-    
-    if State.Flinging and root then
-        local vel = root.Velocity
-        root.Velocity = vel * VenusSettings.FlingPower + Vector3.new(0, VenusSettings.FlingPower, 0)
-        RunService.RenderStepped:Wait()
-        if c and c.Parent and root and root.Parent then
-            root.Velocity = vel
-        end
-        RunService.Stepped:Wait()
-        if c and c.Parent and root and root.Parent then
-            root.Velocity = vel + Vector3.new(0, 0.1, 0)
-        end
-    end
+local function fling()
+local hrp, c, vel, movel = nil, nil, nil, 0.1
+while true do
+RunService.Heartbeat:Wait()
+if hiddenfling then
+while hiddenfling and not (c and c.Parent and hrp and hrp.Parent) do
+RunService.Heartbeat:Wait()
+c = LocalPlayer.Character
+hrp = c and c:FindFirstChild("HumanoidRootPart")
 end
-
-RunService.Heartbeat:Connect(FlingPhysics)
-
+if hiddenfling then
+vel = hrp.Velocity
+hrp.Velocity = vel * flingPower + Vector3.new(0, flingPower, 0)
+RunService.RenderStepped:Wait()
+if c and c.Parent and hrp and hrp.Parent then
+hrp.Velocity = vel
+end
+RunService.Stepped:Wait()
+if c and c.Parent and hrp and hrp.Parent then
+hrp.Velocity = vel + Vector3.new(0, movel, 0)
+movel = movel * -1
+end
+end
+end
+end
+end
+end
+task.spawn(fling)
+-- // VARIABLES \\ --
+local invis_enabled = true
+local invis_on = false
+local current_method = 1
+local seatTeleportPosition = Vector3.new(0, 5000, 0)
+local flySettings = {flying = false, speed = 50}
+local noclip = false
+local espEnabled = false
+local infJump = false
+local spinEnabled = false
+local spinSpeed = 20
+local spinBody
+-- Connection Variables
+local controllerPlayer = nil
+local isSlave = false
+local standPlatform = nil
+local isBusy = false
+local signalConnection = nil
+-- // SIGNAL ANIMATION MAP (The "Silent" Language) \\ --
+-- We use standard Roblox emote IDs that load instantly.
+local SIGNALS = {
+    ["507770239"] = "bring", -- Point
+    ["507770453"] = "jump", -- Laugh
+    ["507770677"] = "fling_target", -- Cheer (Attack who master is looking at)
+    ["507770818"] = "kill", -- Salute
+    ["507771019"] = "stand", -- Dance1 (Toggle Stand Mode)
+    ["507771955"] = "void", -- Tilt
+    ["507772104"] = "spin", -- Wave
+    ["507776879"] = "jumpscare", -- Shrug
+    ["507766388"] = "free", -- Hello (NEW: Free slave)
+    ["507771666"] = "fling_self" -- Dance2 (NEW: Fixed self-fling up)
+}
 local StatusGui = Instance.new("ScreenGui")
-StatusGui.Name = "VenusTitanStatus"
+StatusGui.Name = "VenusStatus"
 StatusGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 StatusGui.ResetOnSpawn = false
-StatusGui.IgnoreGuiInset = true
-
 local StatusFrame = Instance.new("Frame")
-StatusFrame.Size = UDim2.new(0, 350, 0, 40)
-StatusFrame.Position = UDim2.new(0.5, -175, 0, 5)
-StatusFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+StatusFrame.Size = UDim2.new(0, 300, 0, 30)
+StatusFrame.Position = UDim2.new(0.5, -150, 0, 10)
+StatusFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 StatusFrame.BorderSizePixel = 0
 StatusFrame.Parent = StatusGui
-
-local StatusStroke = Instance.new("UIStroke")
-StatusStroke.Color = Color3.fromRGB(0, 255, 255)
-StatusStroke.Thickness = 2
-StatusStroke.Parent = StatusFrame
-
+local StatusCorner = Instance.new("UICorner")
+StatusCorner.CornerRadius = UDim.new(0, 6)
+StatusCorner.Parent = StatusFrame
 local StatusLabel = Instance.new("TextLabel")
 StatusLabel.Size = UDim2.new(1, 0, 1, 0)
 StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = "STATUS: FREE AGENT"
+StatusLabel.Text = "STATUS: FREE"
 StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
-StatusLabel.Font = Enum.Font.GothamBlack
-StatusLabel.TextSize = 16
+StatusLabel.Font = Enum.Font.GothamBold
+StatusLabel.TextSize = 14
 StatusLabel.Parent = StatusFrame
-
-local function SetStatus(text, color)
+local function updateStatus(text, color)
     StatusLabel.Text = text
     StatusLabel.TextColor3 = color
-    StatusStroke.Color = color
 end
-
-local function Notify(title, msg, duration)
-    local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))() 
-    if Rayfield then
-        Rayfield:Notify({
-            Title = title,
-            Content = msg,
-            Duration = duration or 3,
-            Image = 4483362458
-        })
-    end
-end
-
-local function GetPlayerPartial(name)
-    if not name then return nil end
+local function getPlayerNames()
+    local names = {}
     for _, p in pairs(Players:GetPlayers()) do
-        if string.find(string.lower(p.Name), string.lower(name)) or string.find(string.lower(p.DisplayName), string.lower(name)) then
+        if p ~= LocalPlayer then
+            table.insert(names, p.Name)
+        end
+    end
+    return names
+end
+local function getRealParts(char, partName)
+    local r15 = char:FindFirstChild("UpperTorso")
+    local p, m
+    if r15 then
+        if partName == "Head" then p=char:FindFirstChild("Head") m=p and p:FindFirstChild("Neck") end
+        if partName == "Torso" then p=char:FindFirstChild("UpperTorso") m=char:FindFirstChild("LowerTorso") and char.LowerTorso:FindFirstChild("Root") end
+        if partName == "Left Arm" then p=char:FindFirstChild("LeftUpperArm") m=p and p:FindFirstChild("LeftShoulder") end
+        if partName == "Right Arm" then p=char:FindFirstChild("RightUpperArm") m=p and p:FindFirstChild("RightShoulder") end
+        if partName == "Left Leg" then p=char:FindFirstChild("LeftUpperLeg") m=p and p:FindFirstChild("LeftHip") end
+        if partName == "Right Leg" then p=char:FindFirstChild("RightUpperLeg") m=p and p:FindFirstChild("RightHip") end
+    else
+        if partName == "Head" then p=char:FindFirstChild("Head") m=char:FindFirstChild("Torso") and char.Torso:FindFirstChild("Neck") end
+        if partName == "Torso" then p=char:FindFirstChild("Torso") m=char:FindFirstChild("HumanoidRootPart") and char.HumanoidRootPart:FindFirstChild("RootJoint") end
+        if partName == "Left Arm" then p=char:FindFirstChild("Left Arm") m=char:FindFirstChild("Torso") and char.Torso:FindFirstChild("Left Shoulder") end
+        if partName == "Right Arm" then p=char:FindFirstChild("Right Arm") m=char:FindFirstChild("Torso") and char.Torso:FindFirstChild("Right Shoulder") end
+        if partName == "Left Leg" then p=char:FindFirstChild("Left Leg") m=char:FindFirstChild("Torso") and char.Torso:FindFirstChild("Left Hip") end
+        if partName == "Right Leg" then p=char:FindFirstChild("Right Leg") m=char:FindFirstChild("Torso") and char.Torso:FindFirstChild("Right Hip") end
+    end
+    return p, m
+end
+local function findPlayerPartial(text)
+    for _, p in pairs(Players:GetPlayers()) do
+        if string.find(string.lower(p.Name), string.lower(text)) or string.find(string.lower(p.DisplayName), string.lower(text)) then
             return p
         end
     end
     return nil
 end
-
-local function GetLookingTarget()
-    local char = LocalPlayer.Character
-    if not char then return nil end
-    local head = char:FindFirstChild("Head")
-    if not head then return nil end
-    
-    local ray = Ray.new(head.Position, head.CFrame.LookVector * 1000)
-    local hit, pos = workspace:FindPartOnRayWithIgnoreList(ray, {char})
-    
-    if hit and hit.Parent then
-        local m = hit.Parent
-        local p = Players:GetPlayerFromCharacter(m)
-        return p
+local function triggerJumpscare()
+    local sc = Instance.new("ScreenGui")
+    sc.Name = "JumpscareGUI"
+    sc.Parent = LocalPlayer.PlayerGui
+    sc.IgnoreGuiInset = true
+   
+    local img = Instance.new("ImageLabel")
+    img.Parent = sc
+    img.Size = UDim2.new(1,0,1,0)
+    img.Image = "rbxassetid://5565362953"
+    img.BackgroundColor3 = Color3.new(0,0,0)
+   
+    local snd = Instance.new("Sound")
+    snd.Parent = sc
+    snd.SoundId = "rbxassetid://9120339906"
+    snd.Volume = 10
+    snd.PlayOnRemove = true
+    snd:Play()
+   
+    task.wait(2)
+    sc:Destroy()
+end
+-- // RAYCAST FINDER (For "Look at Target" Logic) \\ --
+local function getPlayerMasterIsLookingAt()
+    if not controllerPlayer or not controllerPlayer.Character then return nil end
+    local masterRoot = controllerPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not masterRoot then return nil end
+   
+    local rayOrigin = masterRoot.Position
+    local rayDirection = masterRoot.CFrame.LookVector * 1000
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {controllerPlayer.Character, LocalPlayer.Character}
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+   
+    local result = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+    if result and result.Instance then
+        local hitModel = result.Instance:FindFirstAncestorOfClass("Model")
+        if hitModel then
+            local pl = Players:GetPlayerFromCharacter(hitModel)
+            return pl
+        end
     end
     return nil
 end
-
-local function CreateAuraParts()
-    for i = 1, 8 do
-        local p = Instance.new("Part")
-        p.Size = Vector3.new(0.5, 0.5, 0.5)
-        p.Shape = Enum.PartType.Ball
-        p.Material = Enum.Material.Neon
-        p.Color = Color3.fromRGB(0, 255, 255)
-        p.Anchored = true
-        p.CanCollide = false
-        p.CastShadow = false
-        p.Parent = workspace
-        table.insert(AuraParts, p)
+local function targetFlingRoutine(target)
+    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character then
+        local lpRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not lpRoot then return end
+       
+        isBusy = true
+        local oldPos = lpRoot.CFrame
+        hiddenfling = true
+        local startTime = tick()
+       
+        local con
+        con = RunService.RenderStepped:Connect(function()
+            if tick() - startTime > 2 or not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then
+                con:Disconnect()
+                hiddenfling = false
+                lpRoot.Velocity = Vector3.zero
+                lpRoot.CFrame = oldPos
+                isBusy = false
+                return
+            end
+            lpRoot.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,0.5)
+            lpRoot.Velocity = Vector3.new(0,10000,0)
+        end)
     end
 end
-
-local function CleanAura()
-    for _, p in pairs(AuraParts) do
-        p:Destroy()
-    end
-    AuraParts = {}
-end
-
-local function InitFly()
-    task.spawn(function()
-        local bv = Instance.new("BodyVelocity")
-        bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
-        bv.Velocity = Vector3.zero
-        
-        local bg = Instance.new("BodyGyro")
-        bg.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
-        bg.P = 9000
-        
-        while State.Flying and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") do
-            local root = LocalPlayer.Character.HumanoidRootPart
-            local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
-            
-            if hum then
-                hum:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
-                hum.PlatformStand = true
-            end
-            
-            if not root:FindFirstChild("BodyVelocity") then
-                bv.Parent = root
-                bg.Parent = root
-            end
-            
-            local camCF = Camera.CFrame
-            local vel = Vector3.zero
-            
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                vel = vel + camCF.LookVector * VenusSettings.FlySpeed
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                vel = vel - camCF.LookVector * VenusSettings.FlySpeed
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                vel = vel - camCF.RightVector * VenusSettings.FlySpeed
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                vel = vel + camCF.RightVector * VenusSettings.FlySpeed
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                vel = vel + Vector3.new(0, VenusSettings.FlySpeed, 0)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
-                vel = vel - Vector3.new(0, VenusSettings.FlySpeed, 0)
-            end
-            
-            bv.Velocity = vel
-            bg.CFrame = camCF
-            RunService.RenderStepped:Wait()
-        end
-        
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-            LocalPlayer.Character.Humanoid.PlatformStand = false
-        end
-        bv:Destroy()
-        bg:Destroy()
-    end)
-end
-
-local function TriggerJumpscare()
-    local gui = Instance.new("ScreenGui")
-    gui.Name = "Screamer"
-    gui.Parent = LocalPlayer.PlayerGui
-    
-    local img = Instance.new("ImageLabel")
-    img.Size = UDim2.new(1, 0, 1, 0)
-    img.Image = "rbxassetid://5565362953" 
-    img.BackgroundColor3 = Color3.new(0,0,0)
-    img.Parent = gui
-    
-    local snd = Instance.new("Sound")
-    snd.SoundId = "rbxassetid://9120339906"
-    snd.Volume = 10
-    snd.Parent = gui
-    snd:Play()
-    
-    task.wait(2)
-    gui:Destroy()
-end
-
-local function FlingTargetLoop(targetName)
-    local target = GetPlayerPartial(targetName)
-    if not target then return end
-    
-    State.IsBusy = true
-    State.Flinging = true
-    
-    local startTime = tick()
-    
-    local con
-    con = RunService.RenderStepped:Connect(function()
-        if not State.Flinging or not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") or not LocalPlayer.Character then
-            con:Disconnect()
-            State.Flinging = false
-            State.IsBusy = false
-            local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then hrp.Velocity = Vector3.zero end
-            return
-        end
-        
-        local myRoot = LocalPlayer.Character.HumanoidRootPart
-        local tRoot = target.Character.HumanoidRootPart
-        
-        myRoot.CFrame = tRoot.CFrame * CFrame.new(0, 0, 0) 
-        myRoot.Velocity = Vector3.new(0, 10000, 0)
-        
-        if tick() - startTime > 1.5 and not State.LoopFlinging then
-             con:Disconnect()
-             State.Flinging = false
-             State.IsBusy = false
-             myRoot.Velocity = Vector3.zero
-        end
-    end)
-end
-
-local function ExecuteCommand(cmd, args)
-    if cmd == "kill" then
-        State.IsBusy = true
-        LocalPlayer.Character:BreakJoints()
-        task.wait(1)
-        State.IsBusy = false
-    elseif cmd == "void" then
-        State.IsBusy = true
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, -900, 0)
-        end
-        task.wait(1)
-        State.IsBusy = false
-    elseif cmd == "bring" then
-        State.IsBusy = true
-        if State.Controller and State.Controller.Character then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = State.Controller.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
-        end
-        task.wait(0.5)
-        State.IsBusy = false
-    elseif cmd == "fly" then
-        State.Flying = true
-        InitFly()
-    elseif cmd == "unfly" then
-        State.Flying = false
-    elseif cmd == "fling" then
-        State.Flinging = true
-        task.wait(2)
-        State.Flinging = false
-    elseif cmd == "jump" then
-        LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-    elseif cmd == "sit" then
-        LocalPlayer.Character.Humanoid.Sit = true
-    elseif cmd == "jumpscare" then
-        TriggerJumpscare()
-    elseif cmd == "orbit" then
-        State.OrbitMode = not State.OrbitMode
-        State.CarpetMode = false
-        State.StandMode = false
-        State.IsBusy = false
-    elseif cmd == "carpet" then
-        State.CarpetMode = not State.CarpetMode
-        State.OrbitMode = false
-        State.StandMode = false
-        State.IsBusy = false
-    elseif cmd == "stand" then
-        State.StandMode = true
-        State.OrbitMode = false
-        State.CarpetMode = false
-        State.IsBusy = false
-    elseif cmd == "unstand" then
-        State.StandMode = false
-        State.OrbitMode = false
-        State.CarpetMode = false
-        State.IsBusy = true 
-    elseif cmd == "freeze" then
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            LocalPlayer.Character.HumanoidRootPart.Anchored = not LocalPlayer.Character.HumanoidRootPart.Anchored
-        end
-    elseif cmd == "loopfling" and args then
-        State.LoopFlinging = true
-        FlingTargetLoop(args)
-    elseif cmd == "unloopfling" then
-        State.LoopFlinging = false
-        State.Flinging = false
-        State.IsBusy = false
-    elseif cmd == "attack" and args then
-        FlingTargetLoop(args)
-    elseif cmd == "spin" then
-        State.Spinning = not State.Spinning
-    end
-end
-
-local function SendSilentCommand(cmd, args)
-    if LocalPlayer.Character then
-        local payload = cmd .. "|" .. (args or "nil") .. "|" .. tostring(tick())
-        LocalPlayer.Character:SetAttribute("VenusProtocol", payload)
-    end
-end
-
-RunService.Heartbeat:Connect(function()
-    if State.SubordinateMode and State.Controller then
-        local controllerChar = State.Controller.Character
-        if controllerChar then
-            local signal = controllerChar:GetAttribute("VenusProtocol")
-            if signal then
-                local parts = string.split(signal, "|")
-                local cmd = parts[1]
-                local args = parts[2]
-                local id = parts[3]
-                
-                if id ~= LocalPlayer:GetAttribute("LastExecID") then
-                    LocalPlayer:SetAttribute("LastExecID", id)
-                    ExecuteCommand(cmd, args)
-                end
-            end
-        end
-    end
-end)
-
-local StandOffsets = {
-    ["Torso"] = CFrame.Angles(0, 0, 0),
-    ["Head"] = CFrame.Angles(0, 0, 0),
-    ["Left Arm"] = CFrame.Angles(math.rad(30), 0, math.rad(-20)),
-    ["Right Arm"] = CFrame.Angles(math.rad(30), 0, math.rad(20)),
-    ["Left Leg"] = CFrame.Angles(math.rad(10), 0, 0),
-    ["Right Leg"] = CFrame.Angles(math.rad(5), 0, 0)
-}
-
-local function GetLimbs(char, name)
-    if not char then return end
-    local r15 = char:FindFirstChild("UpperTorso")
-    
-    local map = {
-        ["Head"] = r15 and "Head" or "Head",
-        ["Torso"] = r15 and "UpperTorso" or "Torso",
-        ["Left Arm"] = r15 and "LeftUpperArm" or "Left Arm",
-        ["Right Arm"] = r15 and "RightUpperArm" or "Right Arm",
-        ["Left Leg"] = r15 and "LeftUpperLeg" or "Left Leg",
-        ["Right Leg"] = r15 and "RightUpperLeg" or "Right Leg"
-    }
-    
-    local part = char:FindFirstChild(map[name])
-    local motor = nil
-    
-    if part then
-        if r15 then
-            if name == "Head" then motor = part:FindFirstChild("Neck") end
-            if name == "Torso" then motor = char.LowerTorso:FindFirstChild("Root") end
-            if name == "Left Arm" then motor = part:FindFirstChild("LeftShoulder") end
-            if name == "Right Arm" then motor = part:FindFirstChild("RightShoulder") end
-            if name == "Left Leg" then motor = part:FindFirstChild("LeftHip") end
-            if name == "Right Leg" then motor = part:FindFirstChild("RightHip") end
-        else
-            if name == "Head" then motor = char.Torso:FindFirstChild("Neck") end
-            if name == "Torso" then motor = char.HumanoidRootPart:FindFirstChild("RootJoint") end
-            if name == "Left Arm" then motor = char.Torso:FindFirstChild("Left Shoulder") end
-            if name == "Right Arm" then motor = char.Torso:FindFirstChild("Right Shoulder") end
-            if name == "Left Leg" then motor = char.Torso:FindFirstChild("Left Hip") end
-            if name == "Right Leg" then motor = char.Torso:FindFirstChild("Right Hip") end
-        end
-    end
-    return part, motor
-end
-
-RunService.Heartbeat:Connect(function()
-    local myChar = LocalPlayer.Character
-    if not myChar then return end
-    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-    local myHum = myChar:FindFirstChild("Humanoid")
-    
-    if State.Spinning and myRoot then
-        myRoot.CFrame = myRoot.CFrame * CFrame.Angles(0, math.rad(VenusSettings.SpinSpeed), 0)
-    end
-    
-    if State.Aura and myRoot then
-        if #AuraParts == 0 then CreateAuraParts() end
-        local t = tick()
-        for i, p in pairs(AuraParts) do
-            local a = t * 2 + (i * (math.pi*2/8))
-            p.CFrame = myRoot.CFrame * CFrame.new(math.cos(a)*5, math.sin(t*3+i)*2, math.sin(a)*5)
-        end
-    else
-        CleanAura()
-    end
-    
-    if State.SubordinateMode and State.Controller and State.Controller.Character and myRoot and myHum and not State.IsBusy then
-        local targetChar = State.Controller.Character
-        local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
-        
-        if targetRoot then
-            myHum.PlatformStand = true
-            
-            if not StandPlatform then
-                StandPlatform = Instance.new("Part")
-                StandPlatform.Size = Vector3.new(4, 0.2, 4)
-                StandPlatform.Anchored = true
-                StandPlatform.CanCollide = true
-                StandPlatform.Transparency = 0.5
-                StandPlatform.Color = Color3.fromRGB(0, 100, 255)
-                StandPlatform.Material = Enum.Material.ForceField
-                StandPlatform.Parent = workspace
-            end
-            
-            if State.OrbitMode then
-                OrbitAngle = OrbitAngle + 0.05
-                local goal = targetRoot.CFrame * CFrame.new(math.cos(OrbitAngle)*8, 2, math.sin(OrbitAngle)*8)
-                myRoot.CFrame = myRoot.CFrame:Lerp(CFrame.new(goal.Position, targetRoot.Position), 0.2)
-                StandPlatform.CFrame = myRoot.CFrame * CFrame.new(0, -3, 0)
-                myRoot.Velocity = Vector3.zero
-            elseif State.CarpetMode then
-                local goal = targetRoot.CFrame * CFrame.new(0, -3.5, 0) * CFrame.Angles(math.rad(90), 0, 0)
-                myRoot.CFrame = myRoot.CFrame:Lerp(goal, 0.2)
-                StandPlatform.CFrame = CFrame.new(0, -900, 0) 
-                myRoot.Velocity = Vector3.zero
-            else
-                local bob = math.sin(tick()*2) * 0.5
-                local goal = targetRoot.CFrame * CFrame.new(0, 3 + bob, 2)
-                myRoot.CFrame = myRoot.CFrame:Lerp(goal, 0.15)
-                StandPlatform.CFrame = myRoot.CFrame * CFrame.new(0, -3, 0)
-                myRoot.Velocity = Vector3.zero
-                
-                for name, offset in pairs(StandOffsets) do
-                    local p, m = GetLimbs(myChar, name)
-                    if m then
-                        if not m:GetAttribute("OrigC0") then m:SetAttribute("OrigC0", m.C0) end
-                        m.C0 = m:GetAttribute("OrigC0") * offset
-                    end
-                end
-            end
-        end
-    else
-        if StandPlatform then StandPlatform:Destroy() StandPlatform = nil end
-        if myHum then myHum.PlatformStand = false end
-    end
-end)
-
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-
 local Window = Rayfield:CreateWindow({
-   Name = "Venus Ultimate",
+   Name = "Venus",
    Icon = 0,
-   LoadingTitle = "Titan Edition",
-   LoadingSubtitle = "Sovereign Protocol",
+   LoadingTitle = "Venus Silent",
+   LoadingSubtitle = "No Chat Required",
    Theme = "Ocean",
    DisableRayfieldPrompts = false,
    DisableBuildWarnings = false,
    ConfigurationSaving = {
       Enabled = true,
       FolderName = nil,
-      FileName = "VenusTitan"
+      FileName = "VenusConfig"
    },
    Discord = {
       Enabled = false,
       Invite = "noinvitelink",
       RememberJoins = true
    },
-   KeySystem = false, 
+   KeySystem = false,
 })
-
+local function Notify(title, content, duration)
+    Rayfield:Notify({
+        Title = title,
+        Content = content,
+        Duration = duration or 3,
+        Image = 4483362458,
+    })
+end
+local function setCharacterTransparency(transparency)
+    if LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                part.Transparency = transparency
+            end
+        end
+    end
+end
+local function toggleInvisibility()
+    if not invis_enabled then return end
+    invis_on = not invis_on
+   
+    if invis_on then
+        if current_method == 1 then
+            setCharacterTransparency(0.5)
+            Notify("Invis", "Enabling invisibility...", 1)
+            local character = LocalPlayer.Character
+            if character then
+                local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                if humanoidRootPart then
+                    local savedpos = humanoidRootPart.CFrame
+                    task.wait(0.1)
+                    pcall(function() character:MoveTo(seatTeleportPosition) end)
+                    task.wait(0.1)
+                   
+                    if not character:FindFirstChild("HumanoidRootPart") or character.HumanoidRootPart.Position.Y < voidLevelYThreshold then
+                        pcall(function() character:MoveTo(savedpos) end)
+                        invis_on = false
+                        setCharacterTransparency(0)
+                        return
+                    end
+                   
+                    local Seat = Instance.new('Seat')
+                    Seat.Parent = workspace
+                    Seat.Anchored = false
+                    Seat.CanCollide = false
+                    Seat.Name = 'invischair'
+                    Seat.Transparency = 1
+                    Seat.Position = seatTeleportPosition
+                   
+                    local Weld = Instance.new("Weld")
+                    Weld.Part0 = Seat
+                    local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
+                   
+                    if torso then
+                        Weld.Part1 = torso
+                        Weld.Parent = Seat
+                        task.wait()
+                        pcall(function() Seat.CFrame = savedpos end)
+                        currentSeatPosition = Seat.Position
+                        Notify("Invis Enabled", "Method: Seat", 1)
+                    else
+                        Seat:Destroy()
+                    end
+                end
+            end
+        end
+    else
+        setCharacterTransparency(0)
+        Notify("Invis Disabled", "Visible", 1)
+        task.spawn(function()
+            local inv = workspace:FindFirstChild('invischair')
+            if inv then pcall(function() inv:Destroy() end) end
+        end)
+        currentSeatPosition = nil
+    end
+end
+RunService.Stepped:Connect(function()
+    if noclip and LocalPlayer.Character then
+        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = false
+            end
+        end
+    end
+end)
+UserInputService.JumpRequest:Connect(function()
+    if infJump and LocalPlayer.Character then
+        LocalPlayer.Character:FindFirstChildOfClass('Humanoid'):ChangeState("Jumping")
+    end
+end)
+function initFly()
+     task.spawn(function()
+        local bv = Instance.new("BodyVelocity")
+        bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+        bv.Velocity = Vector3.zero
+        local bg = Instance.new("BodyGyro")
+        bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+        bg.P = 9e4
+        while flySettings.flying and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") do
+           local hrp = LocalPlayer.Character.HumanoidRootPart
+           local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
+          
+           if hum then
+               hum:ChangeState(Enum.HumanoidStateType.Running)
+           end
+          
+           if not hrp:FindFirstChild("BodyVelocity") then
+              bv.Parent = hrp
+              bg.Parent = hrp
+           end
+           bv.Velocity = Vector3.zero
+           local camCF = Camera.CFrame
+           if UserInputService:IsKeyDown(Enum.KeyCode.W) then bv.Velocity = bv.Velocity + camCF.LookVector * flySettings.speed end
+           if UserInputService:IsKeyDown(Enum.KeyCode.S) then bv.Velocity = bv.Velocity - camCF.LookVector * flySettings.speed end
+           if UserInputService:IsKeyDown(Enum.KeyCode.A) then bv.Velocity = bv.Velocity - camCF.RightVector * flySettings.speed end
+           if UserInputService:IsKeyDown(Enum.KeyCode.D) then bv.Velocity = bv.Velocity + camCF.RightVector * flySettings.speed end
+           if UserInputService:IsKeyDown(Enum.KeyCode.Space) then bv.Velocity = bv.Velocity + Vector3.new(0, flySettings.speed, 0) end
+           if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then bv.Velocity = bv.Velocity - Vector3.new(0, flySettings.speed, 0) end
+           bg.CFrame = camCF
+           RunService.RenderStepped:Wait()
+        end
+        bv:Destroy()
+        bg:Destroy()
+     end)
+end
+local jojoPose = {
+    ["Torso"] = {rx=10, ry=0, rz=0},
+    ["Head"] = {rx=-10, ry=0, rz=0},
+    ["Left Arm"] = {rx=30, rz=-45, ry=20},
+    ["Right Arm"] = {rx=90, rz=0, ry=0},
+    ["Left Leg"] = {rx=20, rz=-5},
+    ["Right Leg"] = {rx=10, rz=5}
+}
+local function standLogic()
+    if isSlave and controllerPlayer and controllerPlayer.Character and controllerPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            if not isBusy then
+                local char = LocalPlayer.Character
+                local tRoot = controllerPlayer.Character.HumanoidRootPart
+                local cRoot = char.HumanoidRootPart
+                local hum = char:FindFirstChild("Humanoid")
+               
+                if hum then
+                    hum:ChangeState(Enum.HumanoidStateType.Physics)
+                end
+               
+                if not standPlatform then
+                   standPlatform = Instance.new("Part")
+                   standPlatform.Size = Vector3.new(4, 0.5, 4)
+                   standPlatform.Transparency = 0.5
+                   standPlatform.Color = Color3.fromRGB(0, 255, 255)
+                   standPlatform.Material = Enum.Material.ForceField
+                   standPlatform.Anchored = true
+                   standPlatform.CanCollide = true
+                   standPlatform.Name = "StandPlatform"
+                   standPlatform.Parent = workspace
+                end
+               
+                local bob = math.sin(tick() * 2) * 0.8
+                -- CHANGED: Now stands directly behind master instead of to the side
+                local goalCF = tRoot.CFrame * CFrame.new(0, 3 + bob, -4)
+               
+                if standPlatform then
+                    standPlatform.CFrame = goalCF * CFrame.new(0, -3, 0)
+                end
+               
+                cRoot.CFrame = cRoot.CFrame:Lerp(goalCF, 0.15)
+                cRoot.Velocity = Vector3.zero
+               
+                for n, d in pairs(jojoPose) do
+                    local p, m = getRealParts(char, n)
+                    if m then
+                        if not m:GetAttribute("OrigC0") then m:SetAttribute("OrigC0", m.C0) end
+                        local base = m:GetAttribute("OrigC0")
+                        local rot = CFrame.Angles(math.rad(d.rx), math.rad(d.ry), math.rad(d.rz))
+                        m.C0 = base * rot
+                    end
+                end
+            else
+                if standPlatform then standPlatform.CFrame = CFrame.new(0, -500, 0) end
+            end
+        end
+    else
+        if standPlatform then standPlatform:Destroy() standPlatform = nil end
+    end
+end
+RunService.Heartbeat:Connect(standLogic)
+local function executeCommand(cmd)
+    if not isSlave then return end
+   
+    Notify("Command Received", cmd, 3)
+   
+    if cmd == "jump" then
+        if LocalPlayer.Character then LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end
+    elseif cmd == "bring" then
+        isBusy = true
+        if LocalPlayer.Character and controllerPlayer and controllerPlayer.Character then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = controllerPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,3)
+        end
+        task.wait(0.5)
+        isBusy = false
+    elseif cmd == "spin" then
+        spinEnabled = not spinEnabled
+    elseif cmd == "kill" then
+        isBusy = true
+        LocalPlayer.Character:BreakJoints()
+        task.wait(1)
+        isBusy = false
+    elseif cmd == "void" then
+        isBusy = true
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, -500, 0)
+        task.wait(1)
+        isBusy = false
+    elseif cmd == "jumpscare" then
+        triggerJumpscare()
+    elseif cmd == "fling_self" then  -- NEW: Fixed self-fling (was broken before)
+        isBusy = true
+        hiddenfling = true
+        task.wait(2)
+        hiddenfling = false
+        isBusy = false
+    elseif cmd == "fling_target" then
+        isBusy = true
+        local t = getPlayerMasterIsLookingAt()
+        if t then
+            Notify("Attacking", "Master wants me to kill " .. t.Name, 3)
+            targetFlingRoutine(t)
+        else
+            isBusy = false
+        end
+    elseif cmd == "stand" then
+        isBusy = false
+    elseif cmd == "free" then  -- NEW: Free slave from control
+        isSlave = false
+        controllerPlayer = nil
+        if signalConnection then
+            signalConnection:Disconnect()
+            signalConnection = nil
+        end
+        if standPlatform then
+            standPlatform:Destroy()
+            standPlatform = nil
+        end
+        updateStatus("STATUS: FREE", Color3.fromRGB(100, 255, 100))
+        Notify("Freed", "You are no longer controlled.", 5)
+    end
+end
+local function initSignalListener(master)
+    if signalConnection then signalConnection:Disconnect() end
+   
+    local hum = master.Character and master.Character:FindFirstChild("Humanoid")
+    if hum then
+        local animator = hum:FindFirstChild("Animator") or hum:WaitForChild("Animator")
+        signalConnection = animator.AnimationPlayed:Connect(function(track)
+            local id = track.Animation.AnimationId
+            local cleanID = string.match(id, "%d+")
+            if SIGNALS[cleanID] then
+                executeCommand(SIGNALS[cleanID])
+            end
+        end)
+    end
+   
+    master.CharacterAdded:Connect(function(newChar)
+        local h = newChar:WaitForChild("Humanoid")
+        local a = h:WaitForChild("Animator")
+        if signalConnection then signalConnection:Disconnect() end
+        signalConnection = a.AnimationPlayed:Connect(function(track)
+            local id = track.Animation.AnimationId
+            local cleanID = string.match(id, "%d+")
+            if SIGNALS[cleanID] then
+                executeCommand(SIGNALS[cleanID])
+            end
+        end)
+    end)
+end
+local function broadcastSignal(id)
+    if LocalPlayer.Character then
+        local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
+        local animator = hum and hum:FindFirstChild("Animator")
+        if animator then
+            local anim = Instance.new("Animation")
+            anim.AnimationId = "rbxassetid://" .. id
+            local track = animator:LoadAnimation(anim)
+            track.Priority = Enum.AnimationPriority.Action
+            track:Play()
+            task.wait(0.1)
+            track:Stop()
+        end
+    end
+end
 local MainTab = Window:CreateTab("Main", 4483362458)
-local MainSection = MainTab:CreateSection("Self Controls")
-
+local SectionDesync = MainTab:CreateSection("Fling & Invis")
+MainTab:CreateToggle({
+   Name = "Enable Fling",
+   CurrentValue = false,
+   Flag = "FlingToggle",
+   Callback = function(Value)
+      hiddenfling = Value
+   end,
+})
+MainTab:CreateSlider({
+   Name = "Fling Power",
+   Range = {1000, 50000},
+   Increment = 1000,
+   Suffix = "Power",
+   CurrentValue = 10000,
+   Flag = "FlingPower",
+   Callback = function(Value)
+      flingPower = Value
+   end,
+})
+MainTab:CreateToggle({
+   Name = "Seat Invisibility",
+   CurrentValue = false,
+   Flag = "InvisToggle",
+   Callback = function(Value)
+      if Value ~= invis_on then
+         toggleInvisibility()
+      end
+   end,
+})
+local SectionConnect = MainTab:CreateSection("Submission (Type Name -> You become Slave)")
+local connectInputName = ""
+MainTab:CreateInput({
+   Name = "Master's Name",
+   PlaceholderText = "Type Player Name to OBEY",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+       connectInputName = Text
+   end,
+})
+MainTab:CreateButton({
+   Name = "Submit & Obey",
+   Callback = function()
+       local t = findPlayerPartial(connectInputName)
+       if t and t ~= LocalPlayer then
+           controllerPlayer = t
+           isSlave = true
+          
+           initSignalListener(t)
+          
+           updateStatus("SLAVE (Controlled by " .. t.Name .. ")", Color3.fromRGB(255, 50, 50))
+           Notify("Submitted", "You are now controlled by " .. t.Name .. ". Auto-Stand active.", 5)
+       else
+           Notify("Error", "Player invalid or not found", 3)
+       end
+   end,
+})
+local RemoteTab = Window:CreateTab("Remote Admin", 4483362458)
+local RemoteSection = RemoteTab:CreateSection("Control Your Slaves (No Chat Needed)")
+RemoteTab:CreateLabel("Controls work by Body Language signals.")
+RemoteTab:CreateButton({
+   Name = "Jumpscare Them",
+   Callback = function() broadcastSignal("507776879") end,
+})
+RemoteTab:CreateButton({
+   Name = "Kill Them",
+   Callback = function() broadcastSignal("507770818") end,
+})
+RemoteTab:CreateButton({
+   Name = "Fling Them (Up)",
+   Callback = function() broadcastSignal("507771666") end,  -- FIXED: Now uses Dance2 and actually works
+})
+RemoteTab:CreateButton({
+   Name = "Void Them",
+   Callback = function() broadcastSignal("507771955") end,
+})
+RemoteTab:CreateButton({
+   Name = "Summon as Stand (Reset)",
+   Callback = function() broadcastSignal("507771019") end,
+})
+RemoteTab:CreateButton({
+   Name = "Attack My Target (Fling)",
+   Callback = function()
+       Notify("Order", "Look at a player to order the attack!", 3)
+       broadcastSignal("507770677")
+   end,
+})
+-- NEW FEATURES ADDED BELOW (more remote controls using existing/default emotes)
+RemoteTab:CreateButton({
+   Name = "Bring Slaves to Me",
+   Callback = function() broadcastSignal("507770239") end,  -- Point emote
+})
+RemoteTab:CreateButton({
+   Name = "Make Slaves Jump",
+   Callback = function() broadcastSignal("507770453") end,  -- Laugh emote
+})
+RemoteTab:CreateButton({
+   Name = "Toggle Slave Spin",
+   Callback = function() broadcastSignal("507772104") end,  -- Wave emote
+})
+RemoteTab:CreateButton({
+   Name = "Free Slaves",
+   Callback = function() broadcastSignal("507766388") end,  -- Hello emote (releases control)
+})
+local SectionMovement = MainTab:CreateSection("Movement")
 MainTab:CreateToggle({
    Name = "Fly",
    CurrentValue = false,
-   Flag = "Fly",
+   Flag = "FlyToggle",
    Callback = function(Value)
-      State.Flying = Value
-      if Value then InitFly() end
+      flySettings.flying = Value
+      if flySettings.flying then
+          initFly()
+      end
    end,
 })
-
 MainTab:CreateSlider({
    Name = "Fly Speed",
    Range = {10, 500},
-   Increment = 1,
+   Increment = 10,
    Suffix = "Studs",
    CurrentValue = 50,
    Flag = "FlySpeed",
    Callback = function(Value)
-      VenusSettings.FlySpeed = Value
+      flySettings.speed = Value
    end,
 })
-
 MainTab:CreateToggle({
    Name = "Noclip",
    CurrentValue = false,
-   Flag = "Noclip",
+   Flag = "NoclipToggle",
    Callback = function(Value)
-      State.Noclipping = Value
-      RunService.Stepped:Connect(function()
-          if State.Noclipping and LocalPlayer.Character then
-              for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
-                  if v:IsA("BasePart") then v.CanCollide = false end
-              end
-          end
-      end)
+      noclip = Value
    end,
 })
-
 MainTab:CreateToggle({
    Name = "Infinite Jump",
    CurrentValue = false,
-   Flag = "InfJump",
+   Flag = "InfJumpToggle",
    Callback = function(Value)
-      State.InfJump = Value
-      UserInputService.JumpRequest:Connect(function()
-          if State.InfJump and LocalPlayer.Character then
-              LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-          end
-      end)
+      infJump = Value
    end,
 })
-
 MainTab:CreateSlider({
    Name = "WalkSpeed",
-   Range = {16, 500},
+   Range = {16, 300},
    Increment = 1,
    Suffix = "Speed",
    CurrentValue = 16,
-   Flag = "WS",
+   Flag = "WalkSpeed",
    Callback = function(Value)
-      if LocalPlayer.Character then LocalPlayer.Character.Humanoid.WalkSpeed = Value end
+      if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+         LocalPlayer.Character.Humanoid.WalkSpeed = Value
+      end
    end,
 })
-
 MainTab:CreateSlider({
    Name = "JumpPower",
    Range = {50, 500},
    Increment = 1,
    Suffix = "Power",
    CurrentValue = 50,
-   Flag = "JP",
+   Flag = "JumpPower",
    Callback = function(Value)
-      if LocalPlayer.Character then LocalPlayer.Character.Humanoid.JumpPower = Value end
+      if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+         LocalPlayer.Character.Humanoid.UseJumpPower = true
+         LocalPlayer.Character.Humanoid.JumpPower = Value
+      end
    end,
 })
-
-local CombatSection = MainTab:CreateSection("Combat & Visuals")
-
-MainTab:CreateToggle({
-   Name = "Fling Aura",
-   CurrentValue = false,
-   Flag = "Fling",
-   Callback = function(Value)
-      State.Flinging = Value
-      hiddenfling = Value
-   end,
-})
-
-MainTab:CreateSlider({
-   Name = "Fling Power",
-   Range = {1000, 50000},
-   Increment = 1000,
-   Suffix = "Force",
-   CurrentValue = 20000,
-   Flag = "FlingP",
-   Callback = function(Value)
-      VenusSettings.FlingPower = Value
-   end,
-})
-
+local SectionCombat = MainTab:CreateSection("Utility & Trolling")
 MainTab:CreateToggle({
    Name = "SpinBot",
    CurrentValue = false,
-   Flag = "Spin",
+   Flag = "SpinToggle",
    Callback = function(Value)
-      State.Spinning = Value
+      spinEnabled = Value
    end,
 })
-
-MainTab:CreateToggle({
-   Name = "Visual Aura",
-   CurrentValue = false,
-   Flag = "Aura",
+MainTab:CreateSlider({
+   Name = "Spin Speed",
+   Range = {10, 100},
+   Increment = 5,
+   Suffix = "RPM",
+   CurrentValue = 20,
+   Flag = "SpinSpeed",
    Callback = function(Value)
-      State.Aura = Value
+      spinSpeed = Value
    end,
 })
-
-MainTab:CreateToggle({
-   Name = "ESP",
-   CurrentValue = false,
-   Flag = "ESP",
-   Callback = function(Value)
-      State.ESP = Value
-      while State.ESP do
-          for _, p in pairs(Players:GetPlayers()) do
-              if p ~= LocalPlayer and p.Character and not p.Character:FindFirstChild("Highlight") then
-                  local h = Instance.new("Highlight")
-                  h.Parent = p.Character
-                  h.FillColor = Color3.fromRGB(255, 0, 0)
-                  h.OutlineColor = Color3.fromRGB(255, 255, 255)
-              end
-          end
-          task.wait(1)
-      end
-      if not State.ESP then
-          for _, p in pairs(Players:GetPlayers()) do
-              if p.Character and p.Character:FindFirstChild("Highlight") then
-                  p.Character.Highlight:Destroy()
-              end
-          end
-      end
-   end,
-})
-
-local ConnectionTab = Window:CreateTab("Connection", 4483362458)
-local ConnectSection = ConnectionTab:CreateSection("Protocol: Submission")
-
-local targetControllerName = ""
-
-ConnectionTab:CreateInput({
-   Name = "Controller Name",
-   PlaceholderText = "Player to OBEY",
-   RemoveTextAfterFocusLost = false,
-   Callback = function(Text)
-      targetControllerName = Text
-   end,
-})
-
-ConnectionTab:CreateButton({
-   Name = "Submit & Obey",
+MainTab:CreateButton({
+   Name = "Click TP Tool",
    Callback = function()
-       local t = GetPlayerPartial(targetControllerName)
-       if t then
-           State.Controller = t
-           State.SubordinateMode = true
-           SetStatus("CONTROLLED BY " .. t.Name, Color3.fromRGB(255, 50, 50))
-           Notify("Venus Protocol", "You are now serving " .. t.Name, 5)
-       else
-           Notify("Error", "Player not found", 3)
-       end
-   end,
-})
-
-ConnectionTab:CreateButton({
-   Name = "Break Freedom (Unobey)",
-   Callback = function()
-       State.Controller = nil
-       State.SubordinateMode = false
-       SetStatus("STATUS: FREE AGENT", Color3.fromRGB(100, 255, 100))
-       Notify("Freedom", "You are free.", 3)
-   end,
-})
-
-local AdminTab = Window:CreateTab("Remote Admin", 4483362458)
-local AdminSection = AdminTab:CreateSection("Commands (For Controller)")
-
-AdminTab:CreateButton({
-   Name = "Kill Subordinate",
-   Callback = function() SendSilentCommand("kill") end,
-})
-
-AdminTab:CreateButton({
-   Name = "Void Subordinate",
-   Callback = function() SendSilentCommand("void") end,
-})
-
-AdminTab:CreateButton({
-   Name = "Jumpscare Subordinate",
-   Callback = function() SendSilentCommand("jumpscare") end,
-})
-
-AdminTab:CreateButton({
-   Name = "Freeze Subordinate",
-   Callback = function() SendSilentCommand("freeze") end,
-})
-
-local Modes = AdminTab:CreateSection("Formation Modes")
-
-AdminTab:CreateButton({
-   Name = "Stand Mode (Default)",
-   Callback = function() SendSilentCommand("stand") end,
-})
-
-AdminTab:CreateButton({
-   Name = "Orbit Mode (Protect)",
-   Callback = function() SendSilentCommand("orbit") end,
-})
-
-AdminTab:CreateButton({
-   Name = "Carpet Mode (Ride)",
-   Callback = function() SendSilentCommand("carpet") end,
-})
-
-AdminTab:CreateButton({
-   Name = "Idle (Stop Formation)",
-   Callback = function() SendSilentCommand("unstand") end,
-})
-
-local Proxy = AdminTab:CreateSection("Proxy Attacks")
-
-local proxyTarget = ""
-AdminTab:CreateInput({
-   Name = "Target Name",
-   PlaceholderText = "Victim Name",
-   RemoveTextAfterFocusLost = false,
-   Callback = function(Text)
-      proxyTarget = Text
-   end,
-})
-
-AdminTab:CreateButton({
-   Name = "Order Attack (Fling)",
-   Callback = function()
-       if proxyTarget ~= "" then
-           SendSilentCommand("attack", proxyTarget)
-       else
-           local t = GetLookingTarget()
-           if t then
-               SendSilentCommand("attack", t.Name)
-               Notify("Target Acquired", "Attacking " .. t.Name, 2)
-           else
-               Notify("Error", "No target specified or looked at", 2)
+       local tool = Instance.new("Tool")
+       tool.RequiresHandle = false
+       tool.Name = "Click TP"
+       tool.Activated:Connect(function()
+           local pos = UserInputService:GetMouseLocation()
+           local ray = Camera:ViewportPointToRay(pos.X, pos.Y)
+           local res = workspace:Raycast(ray.Origin, ray.Direction * 1000)
+           if res and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+               LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(res.Position + Vector3.new(0, 3, 0))
            end
-       end
+       end)
+       tool.Parent = LocalPlayer.Backpack
+       Notify("Tool", "Click TP added to Backpack", 2)
    end,
 })
-
-AdminTab:CreateButton({
-   Name = "Order Loop Fling",
-   Callback = function()
-       if proxyTarget ~= "" then
-           SendSilentCommand("loopfling", proxyTarget)
-       end
-   end,
-})
-
-AdminTab:CreateButton({
-   Name = "Stop Attack",
-   Callback = function() SendSilentCommand("unloopfling") end,
-})
-
-local WaypointTab = Window:CreateTab("Waypoints", 4483362458)
-local WPSection = WaypointTab:CreateSection("Manage")
-
-local wpInput = ""
-WaypointTab:CreateInput({
-   Name = "Waypoint Name",
-   PlaceholderText = "Name...",
-   RemoveTextAfterFocusLost = false,
-   Callback = function(Text)
-      wpInput = Text
-   end,
-})
-
-local WPDropdown
-
-WaypointTab:CreateButton({
-   Name = "Save Position",
-   Callback = function()
-       if LocalPlayer.Character and wpInput ~= "" then
-           local p = LocalPlayer.Character.HumanoidRootPart.Position
-           Waypoints[wpInput] = {x=p.X, y=p.Y, z=p.Z}
-           SaveData(FILES.Waypoints, Waypoints)
-           WPDropdown:Refresh(getWaypointNames())
-       end
-   end,
-})
-
-WPDropdown = WaypointTab:CreateDropdown({
-   Name = "Teleport To",
-   Options = getWaypointNames(),
-   CurrentOption = {""},
-   MultipleOptions = false,
-   Flag = "WPDrop",
-   Callback = function(Option)
-       local d = Waypoints[Option[1]]
-       if d and LocalPlayer.Character then
-           LocalPlayer.Character:MoveTo(Vector3.new(d.x, d.y, d.z))
-       end
-   end,
-})
-
-local ChatTab = Window:CreateTab("Chat Spy", 4483362458)
-local ChatSection = ChatTab:CreateSection("Server Chat Logs")
-
-local ChatScroll = nil -- Placeholder for custom GUI logic if needed later
-
-for _, p in pairs(Players:GetPlayers()) do
-    p.Chatted:Connect(function(msg)
-        table.insert(ChatLogs, "["..p.Name.."]: "..msg)
-    end)
-end
-Players.PlayerAdded:Connect(function(p)
-    p.Chatted:Connect(function(msg)
-        table.insert(ChatLogs, "["..p.Name.."]: "..msg)
-    end)
-end)
-
-ChatTab:CreateButton({
-   Name = "Print Logs to F9",
-   Callback = function()
-       for _, v in pairs(ChatLogs) do print(v) end
-       Notify("Logs", "Check F9 Console", 3)
-   end,
-})
-
 local MiscTab = Window:CreateTab("Misc", 4483362458)
-local MiscSection = MiscTab:CreateSection("Tools")
-
+local MiscSection = MiscTab:CreateSection("Extra")
 MiscTab:CreateButton({
-   Name = "Rejoin",
+   Name = "Rejoin Server",
    Callback = function()
-       TeleportService:Teleport(game.PlaceId, LocalPlayer)
+      game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
    end,
 })
-
 MiscTab:CreateButton({
-   Name = "Server Hop",
+   Name = "Destroy UI",
    Callback = function()
-       -- Basic Server Hop logic placeholder
-       local Http = game:GetService("HttpService")
-       local TPS = game:GetService("TeleportService")
-       local Api = "https://games.roblox.com/v1/games/"
-       local _place = game.PlaceId
-       local _servers = Api.._place.."/servers/Public?sortOrder=Asc&limit=100"
-       
-       local function ListServers(cursor)
-          local Raw = game:HttpGet(_servers .. ((cursor and "&cursor="..cursor) or ""))
-          return Http:JSONDecode(Raw)
-       end
-       
-       local Server, Next; repeat
-          local Servers = ListServers(Next)
-          Server = Servers.data[1]
-          Next = Servers.nextPageCursor
-       until Server
-       
-       TPS:TeleportToPlaceInstance(_place, Server.id, LocalPlayer)
-   end,
-})
-
-MiscTab:CreateButton({
-   Name = "Unload UI",
-   Callback = function()
-       Rayfield:Destroy()
+      Rayfield:Destroy()
    end,
 })
