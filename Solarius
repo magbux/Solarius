@@ -190,8 +190,8 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
     Name = "Venus Controlled",
-    LoadingTitle = "Venus Control Logic",
-    LoadingSubtitle = "Obey & Control",
+    LoadingTitle = "Venus Control Minions",
+    LoadingSubtitle = "Control em",
     Theme = "Ocean",
     ConfigurationSaving = {
         Enabled = true,
