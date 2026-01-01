@@ -4,6 +4,7 @@ local UserInputService = game:GetService("UserInputService")
 local VirtualUser = game:GetService("VirtualUser")
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextChatService = game:GetService("TextChatService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
@@ -67,10 +68,12 @@ local spinBody
 local connectedTarget = nil
 local standMode = false
 local standConnection = nil
-local sessionCode = nil
+local chatConnection = nil
+local allowControl = false
+local standPlatform = nil
 
 local savedScripts = {}
-local scriptFileName = "Solarius_SavedScripts.json"
+local scriptFileName = "Venus_SavedScripts.json"
 
 if isfile and isfile(scriptFileName) then
     local decoded = HttpService:JSONDecode(readfile(scriptFileName))
@@ -134,33 +137,24 @@ end
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Solarius",
+   Name = "Venus",
    Icon = 0,
-   LoadingTitle = "in case i dont see ya good afternoon good morning and good night!",
-   LoadingSubtitle = "by brianz109",
+   LoadingTitle = "Venus Client",
+   LoadingSubtitle = "Loaded",
    Theme = "Ocean",
    DisableRayfieldPrompts = false,
    DisableBuildWarnings = false,
    ConfigurationSaving = {
       Enabled = true,
       FolderName = nil,
-      FileName = "Big Hub"
+      FileName = "VenusConfig"
    },
    Discord = {
       Enabled = false,
       Invite = "noinvitelink",
       RememberJoins = true
    },
-   KeySystem = true,
-   KeySettings = {
-      Title = "Untitled",
-      Subtitle = "Key System",
-      Note = "its brainz109",
-      FileName = "Key",
-      SaveKey = true,
-      GrabKeyFromSite = false,
-      Key = {"brianz109"}
-   }
+   KeySystem = false, 
 })
 
 local function Notify(title, content, duration)
@@ -187,7 +181,6 @@ local function startSeatReturnHeartbeat()
     seatHeartbeat = RunService.Heartbeat:Connect(function()
         local seat = workspace:FindFirstChild('invischair')
         if seat and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-             
         end
     end)
 end
@@ -316,6 +309,35 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
+-- // COMMAND LISTENER \\ --
+local function setupCommandListener(targetPlayer)
+    if chatConnection then chatConnection:Disconnect() end
+    
+    Notify("Control", "Listening to commands from: " .. targetPlayer.Name, 3)
+    
+    chatConnection = targetPlayer.Chatted:Connect(function(msg)
+        if not allowControl then return end
+        
+        local args = string.split(string.lower(msg), " ")
+        if args[1] == ".jump" then
+            if LocalPlayer.Character then LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end
+        elseif args[1] == ".bring" then
+            if LocalPlayer.Character and targetPlayer.Character then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,3)
+            end
+        elseif args[1] == ".spin" then
+            spinEnabled = not spinEnabled
+        elseif args[1] == ".kill" then
+            -- Trigger fling on nearest
+            hiddenfling = true
+            task.wait(1)
+            hiddenfling = false
+        elseif args[1] == ".reset" then
+            LocalPlayer.Character:BreakJoints()
+        end
+    end)
+end
+
 local MainTab = Window:CreateTab("Main", 4483362458)
 
 local SectionDesync = MainTab:CreateSection("Fling & Invis")
@@ -426,13 +448,11 @@ MainTab:CreateButton({
                if tick() - startTime > flingTime then
                    connection:Disconnect()
                    hiddenfling = wasFlingEnabled
-                   
                    lpRoot.Velocity = Vector3.zero
                    lpRoot.RotVelocity = Vector3.zero
                    lpRoot.CFrame = savedPos
                    return
                end
-               
                if targetRoot and targetRoot.Parent and lpRoot and lpRoot.Parent then
                    lpRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 0.5)
                end
@@ -446,48 +466,18 @@ MainTab:CreateButton({
 local SectionConnect = MainTab:CreateSection("Connection (JoJo Stand)")
 
 MainTab:CreateButton({
-   Name = "Generate Random Code",
+   Name = "Get My ID (Code)",
    Callback = function()
-       sessionCode = math.random(1000, 9999)
-       if LocalPlayer.Character then
-           LocalPlayer.Character:SetAttribute("SolariusCode", sessionCode)
-       end
-       
        if setclipboard then
-           setclipboard(tostring(sessionCode))
-           Notify("Code Generated", tostring(sessionCode) .. " (Copied)", 5)
-       else
-           Notify("Code Generated", tostring(sessionCode) .. " (Type this on other acc)", 10)
+           setclipboard(tostring(LocalPlayer.UserId))
+           Notify("Code Copied", tostring(LocalPlayer.UserId), 5)
        end
    end,
 })
 
 MainTab:CreateInput({
-   Name = "Connect via Random Code",
-   PlaceholderText = "Enter 4-digit code",
-   RemoveTextAfterFocusLost = false,
-   Callback = function(Text)
-       local inputCode = tonumber(Text)
-       if inputCode then
-           local found = false
-           for _, p in pairs(Players:GetPlayers()) do
-               if p ~= LocalPlayer and p.Character and p.Character:GetAttribute("SolariusCode") == inputCode then
-                   connectedTarget = p
-                   found = true
-                   Notify("Success", "Connected to " .. p.Name, 3)
-                   break
-               end
-           end
-           if not found then
-               Notify("Failed", "No player found with that code.", 3)
-           end
-       end
-   end,
-})
-
-MainTab:CreateInput({
-   Name = "Connect via User ID (Backup)",
-   PlaceholderText = "Paste User ID",
+   Name = "Enter Friend's ID",
+   PlaceholderText = "Paste ID here",
    RemoveTextAfterFocusLost = false,
    Callback = function(Text)
        local id = tonumber(Text)
@@ -495,7 +485,8 @@ MainTab:CreateInput({
            for _, p in pairs(Players:GetPlayers()) do
                if p.UserId == id then
                    connectedTarget = p
-                   Notify("Connected", "Target locked: " .. p.Name, 3)
+                   Notify("Connected", "Linked to: " .. p.Name, 3)
+                   setupCommandListener(p)
                    return
                end
            end
@@ -504,12 +495,25 @@ MainTab:CreateInput({
    end,
 })
 
+MainTab:CreateToggle({
+   Name = "Allow Control (They can control you)",
+   CurrentValue = false,
+   Flag = "ControlToggle",
+   Callback = function(Value)
+       allowControl = Value
+       if Value then
+           Notify("Risk", "Connected player can now control you with commands (.jump, .bring, .spin)", 5)
+       end
+   end,
+})
+
 local jojoPose = {
-    ["Torso"] = {rx=0, ry=20, rz=0},
-    ["Left Arm"] = {rx=120, rz=-20, ry=20},
-    ["Right Arm"] = {rx=30, rz=20, ry=20},
-    ["Left Leg"] = {rx=20, rz=-10},
-    ["Right Leg"] = {rx=-10, rz=10}
+    ["Torso"] = {rx=10, ry=0, rz=0},
+    ["Head"] = {rx=-10, ry=0, rz=0},
+    ["Left Arm"] = {rx=30, rz=-45, ry=20},
+    ["Right Arm"] = {rx=90, rz=0, ry=0},
+    ["Left Leg"] = {rx=20, rz=-5},
+    ["Right Leg"] = {rx=10, rz=5}
 }
 
 MainTab:CreateToggle({
@@ -524,6 +528,17 @@ MainTab:CreateToggle({
                return
            end
            
+           if standPlatform then standPlatform:Destroy() end
+           standPlatform = Instance.new("Part")
+           standPlatform.Size = Vector3.new(4, 0.5, 4)
+           standPlatform.Transparency = 0.5
+           standPlatform.Color = Color3.fromRGB(0, 255, 255)
+           standPlatform.Material = Enum.Material.ForceField
+           standPlatform.Anchored = true
+           standPlatform.CanCollide = true
+           standPlatform.Name = "StandPlatform"
+           standPlatform.Parent = workspace
+           
            if standConnection then standConnection:Disconnect() end
            
            standConnection = RunService.Heartbeat:Connect(function()
@@ -532,8 +547,25 @@ MainTab:CreateToggle({
                
                if char and targetChar and char:FindFirstChild("HumanoidRootPart") and targetChar:FindFirstChild("HumanoidRootPart") then
                    local tRoot = targetChar.HumanoidRootPart
-                   char.HumanoidRootPart.CFrame = tRoot.CFrame * CFrame.new(2, 3, 2)
-                   char.HumanoidRootPart.Velocity = Vector3.zero
+                   local cRoot = char.HumanoidRootPart
+                   local hum = char:FindFirstChild("Humanoid")
+                   
+                   -- Prevent Falling animation by forcing state
+                   if hum then
+                       hum:ChangeState(Enum.HumanoidStateType.Physics)
+                   end
+                   
+                   local bob = math.sin(tick() * 2) * 0.8
+                   local goalCF = tRoot.CFrame * CFrame.new(2, 3 + bob, 2)
+                   
+                   -- Move Platform
+                   if standPlatform then
+                       standPlatform.CFrame = goalCF * CFrame.new(0, -3, 0) -- Platform under feet
+                   end
+                   
+                   -- Lerp Character
+                   cRoot.CFrame = cRoot.CFrame:Lerp(goalCF, 0.15)
+                   cRoot.Velocity = Vector3.zero
                    
                    for n, d in pairs(jojoPose) do
                        local p, m = getRealParts(char, n)
@@ -551,8 +583,14 @@ MainTab:CreateToggle({
                standConnection:Disconnect()
                standConnection = nil
            end
+           if standPlatform then
+               standPlatform:Destroy()
+               standPlatform = nil
+           end
            
            if LocalPlayer.Character then
+                local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
+                if hum then hum:ChangeState(Enum.HumanoidStateType.GettingUp) end
                 for n, d in pairs(jojoPose) do
                    local p, m = getRealParts(LocalPlayer.Character, n)
                    if m and m:GetAttribute("OrigC0") then
@@ -574,13 +612,10 @@ MainTab:CreateInput({
       if LocalPlayer.Character then
          local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
          if hum then hum.DisplayName = Text end
-         
          for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
-             if v:IsA("TextLabel") or v:IsA("TextButton") or v:IsA("BillboardGui") then
-                 if v:IsA("TextLabel") or v:IsA("TextButton") then
-                     if string.find(v.Text, LocalPlayer.Name) or string.find(v.Text, LocalPlayer.DisplayName) then
-                         v.Text = Text
-                     end
+             if v:IsA("TextLabel") or v:IsA("TextButton") then
+                 if string.find(v.Text, LocalPlayer.Name) or string.find(v.Text, LocalPlayer.DisplayName) then
+                     v.Text = Text
                  end
              end
          end
@@ -620,10 +655,8 @@ InfoTab:CreateButton({
                    health = math.floor(hum.Health)
                    maxHealth = math.floor(hum.MaxHealth)
                end
-               
                local equip = char:FindFirstChildOfClass("Tool")
                if equip then tool = equip.Name end
-               
                local hrp = char:FindFirstChild("HumanoidRootPart")
                if hrp then
                    pos = math.floor(hrp.Position.X) .. ", " .. math.floor(hrp.Position.Y) .. ", " .. math.floor(hrp.Position.Z)
@@ -631,13 +664,7 @@ InfoTab:CreateButton({
            end
            
            local age = target.AccountAge
-           
-           Notify("Info: " .. target.Name, 
-               "HP: " .. health .. "/" .. maxHealth .. 
-               "\nTeam: " .. team .. 
-               "\nTool: " .. tool ..
-               "\nAge: " .. age .. " days" ..
-               "\nPos: " .. pos, 10)
+           Notify("Info: " .. target.Name, "HP: " .. health .. "\nTeam: " .. team .. "\nTool: " .. tool .. "\nAge: " .. age .. " days", 10)
        else
            Notify("Error", "Player not found", 3)
        end
@@ -657,44 +684,26 @@ MainTab:CreateToggle({
             local bv = Instance.new("BodyVelocity")
             bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
             bv.Velocity = Vector3.zero
-            
             local bg = Instance.new("BodyGyro")
             bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
             bg.P = 9e4
-            
             while flySettings.flying and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") do
                local hrp = LocalPlayer.Character.HumanoidRootPart
                if not hrp:FindFirstChild("BodyVelocity") then
                   bv.Parent = hrp
                   bg.Parent = hrp
                end
-               
                bv.Velocity = Vector3.zero
                local camCF = Camera.CFrame
-               
-               if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                  bv.Velocity = bv.Velocity + camCF.LookVector * flySettings.speed
-               end
-               if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                  bv.Velocity = bv.Velocity - camCF.LookVector * flySettings.speed
-               end
-               if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                  bv.Velocity = bv.Velocity - camCF.RightVector * flySettings.speed
-               end
-               if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                  bv.Velocity = bv.Velocity + camCF.RightVector * flySettings.speed
-               end
-               if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                  bv.Velocity = bv.Velocity + Vector3.new(0, flySettings.speed, 0)
-               end
-               if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
-                  bv.Velocity = bv.Velocity - Vector3.new(0, flySettings.speed, 0)
-               end
-               
+               if UserInputService:IsKeyDown(Enum.KeyCode.W) then bv.Velocity = bv.Velocity + camCF.LookVector * flySettings.speed end
+               if UserInputService:IsKeyDown(Enum.KeyCode.S) then bv.Velocity = bv.Velocity - camCF.LookVector * flySettings.speed end
+               if UserInputService:IsKeyDown(Enum.KeyCode.A) then bv.Velocity = bv.Velocity - camCF.RightVector * flySettings.speed end
+               if UserInputService:IsKeyDown(Enum.KeyCode.D) then bv.Velocity = bv.Velocity + camCF.RightVector * flySettings.speed end
+               if UserInputService:IsKeyDown(Enum.KeyCode.Space) then bv.Velocity = bv.Velocity + Vector3.new(0, flySettings.speed, 0) end
+               if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then bv.Velocity = bv.Velocity - Vector3.new(0, flySettings.speed, 0) end
                bg.CFrame = camCF
                RunService.RenderStepped:Wait()
             end
-            
             bv:Destroy()
             bg:Destroy()
          end)
@@ -800,67 +809,6 @@ MainTab:CreateButton({
        end)
        tool.Parent = LocalPlayer.Backpack
        Notify("Tool", "Click TP added to Backpack", 2)
-   end,
-})
-
-MainTab:CreateToggle({
-   Name = "Anti-AFK",
-   CurrentValue = false,
-   Flag = "AntiAFK",
-   Callback = function(Value)
-      if Value then
-          LocalPlayer.Idled:Connect(function()
-             VirtualUser:CaptureController()
-             VirtualUser:ClickButton2(Vector2.new())
-          end)
-      end
-   end,
-})
-
-local SectionVisuals = MainTab:CreateSection("Visuals")
-
-MainTab:CreateSlider({
-   Name = "Field of View",
-   Range = {70, 120},
-   Increment = 1,
-   Suffix = "FOV",
-   CurrentValue = 70,
-   Flag = "FOV",
-   Callback = function(Value)
-      Camera.FieldOfView = Value
-   end,
-})
-
-MainTab:CreateToggle({
-   Name = "ESP (Player Highlight)",
-   CurrentValue = false,
-   Flag = "ESPToggle",
-   Callback = function(Value)
-      espEnabled = Value
-      if not Value then
-          updateESP()
-      end
-   end,
-})
-
-MainTab:CreateToggle({
-   Name = "Fullbright",
-   CurrentValue = false,
-   Flag = "FullbrightToggle",
-   Callback = function(Value)
-      if Value then
-         game:GetService("Lighting").Brightness = 2
-         game:GetService("Lighting").ClockTime = 14
-         game:GetService("Lighting").FogEnd = 100000
-         game:GetService("Lighting").GlobalShadows = false
-         game:GetService("Lighting").OutdoorAmbient = Color3.fromRGB(128, 128, 128)
-      else
-         game:GetService("Lighting").Brightness = 1
-         game:GetService("Lighting").ClockTime = 12
-         game:GetService("Lighting").FogEnd = 10000
-         game:GetService("Lighting").GlobalShadows = true
-         game:GetService("Lighting").OutdoorAmbient = Color3.fromRGB(127, 127, 127)
-      end
    end,
 })
 
