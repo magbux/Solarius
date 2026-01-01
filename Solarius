@@ -4,7 +4,6 @@ local UserInputService = game:GetService("UserInputService")
 local VirtualUser = game:GetService("VirtualUser")
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TextChatService = game:GetService("TextChatService")
 local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
@@ -12,7 +11,6 @@ local Camera = workspace.CurrentCamera
 local hiddenfling = false
 local flingPower = 10000
 
--- // FLING LOGIC \\ --
 if not ReplicatedStorage:FindFirstChild("juisdfj0i32i0eidsuf0iok") then
 	local detection = Instance.new("Decal")
 	detection.Name = "juisdfj0i32i0eidsuf0iok"
@@ -48,7 +46,6 @@ end
 
 task.spawn(fling)
 
--- // VARIABLES \\ --
 local Visualizer
 local invis_enabled = true
 local invis_on = false
@@ -68,11 +65,13 @@ local spinEnabled = false
 local spinSpeed = 20
 local spinBody
 
--- Connection Variables
-local connectedTarget = nil -- The player I am controlling (Master View)
-local controllerPlayer = nil -- The player controlling me (Slave View)
-local isBusy = false -- If true, Auto-Stand pauses to let commands happen
+local connectedTarget = nil 
+local controllerPlayer = nil
+local standMode = false
+local standConnection = nil
+local allowControl = false
 local standPlatform = nil
+local isBusy = false
 
 local StatusGui = Instance.new("ScreenGui")
 StatusGui.Name = "VenusStatus"
@@ -195,7 +194,7 @@ local function targetFlingRoutine(targetName)
         local lpRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not lpRoot then return end
         
-        isBusy = true -- Pause Stand
+        isBusy = true
         local oldPos = lpRoot.CFrame
         hiddenfling = true
         local startTime = tick()
@@ -207,7 +206,7 @@ local function targetFlingRoutine(targetName)
                 hiddenfling = false
                 lpRoot.Velocity = Vector3.zero
                 lpRoot.CFrame = oldPos
-                isBusy = false -- Resume Stand
+                isBusy = false
                 return
             end
             lpRoot.CFrame = t.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,0.5)
@@ -436,11 +435,9 @@ local jojoPose = {
     ["Right Leg"] = {rx=10, rz=5}
 }
 
--- AUTO STAND LOGIC FOR SLAVE
 RunService.Heartbeat:Connect(function()
     if controllerPlayer and controllerPlayer.Character and controllerPlayer.Character:FindFirstChild("HumanoidRootPart") then
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            -- Only become stand if NOT busy performing other commands
             if not isBusy then
                 local char = LocalPlayer.Character
                 local tRoot = controllerPlayer.Character.HumanoidRootPart
@@ -451,7 +448,6 @@ RunService.Heartbeat:Connect(function()
                     hum:ChangeState(Enum.HumanoidStateType.Physics)
                 end
                 
-                -- Ensure Platform Exists
                 if not standPlatform then
                    standPlatform = Instance.new("Part")
                    standPlatform.Size = Vector3.new(4, 0.5, 4)
@@ -484,97 +480,97 @@ RunService.Heartbeat:Connect(function()
                     end
                 end
             else
-                -- Is Busy, cleanup temp parts
                 if standPlatform then standPlatform.CFrame = CFrame.new(0, -500, 0) end
             end
         end
     else
-        -- Cleanup if connection lost
         if standPlatform then standPlatform:Destroy() standPlatform = nil end
     end
 end)
 
 local function executeCommand(cmd, args)
-    if cmd == ".jump" then
+    if not allowControl then return end
+    if cmd == "jump" then
         if LocalPlayer.Character then LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end
-    elseif cmd == ".bring" then
+    elseif cmd == "bring" then
         isBusy = true
         if LocalPlayer.Character and controllerPlayer and controllerPlayer.Character then
             LocalPlayer.Character.HumanoidRootPart.CFrame = controllerPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,3)
         end
         task.wait(0.5)
         isBusy = false
-    elseif cmd == ".spin" then
+    elseif cmd == "spin" then
         spinEnabled = not spinEnabled
-    elseif cmd == ".kill" then
+    elseif cmd == "kill" then
         isBusy = true
         LocalPlayer.Character:BreakJoints()
         task.wait(1)
         isBusy = false
-    elseif cmd == ".void" then
+    elseif cmd == "void" then
         isBusy = true
         LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, -500, 0)
         task.wait(1)
         isBusy = false
-    elseif cmd == ".fly" then
+    elseif cmd == "fly" then
         flySettings.flying = true
         initFly()
-    elseif cmd == ".unfly" then
+    elseif cmd == "unfly" then
         flySettings.flying = false
-    elseif cmd == ".noclip" then
+    elseif cmd == "noclip" then
         noclip = true
-    elseif cmd == ".clip" then
+    elseif cmd == "clip" then
         noclip = false
-    elseif cmd == ".jumpscare" then
+    elseif cmd == "jumpscare" then
         triggerJumpscare()
-    elseif cmd == ".fling" then
+    elseif cmd == "fling" then
         isBusy = true
         hiddenfling = true
         task.wait(2)
         hiddenfling = false
         isBusy = false
-    elseif cmd == ".flingplayer" and args then
+    elseif cmd == "flingplayer" and args then
         targetFlingRoutine(args)
+    elseif cmd == "standpose" then
+        isBusy = false 
     end
 end
 
 local function sendCmd(cmd)
-    game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(cmd, "All")
+    if connectedTarget and connectedTarget.Character then
+        connectedTarget.Character:SetAttribute("VenusCmd", cmd .. " " .. tostring(math.random(1,1000)))
+    end
 end
 
-local function listenForController()
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer then
-            p.Chatted:Connect(function(msg)
-                if string.sub(msg, 1, 9) == "!v_cntrl" and not controllerPlayer then
+local function initCommandListener()
+    RunService.Heartbeat:Connect(function()
+        if LocalPlayer.Character then
+            local cmdAttr = LocalPlayer.Character:GetAttribute("VenusCmd")
+            if cmdAttr then
+                local split = string.split(cmdAttr, " ")
+                local cmd = split[1]
+                local args = split[2]
+                
+                local lastCmd = LocalPlayer.Character:GetAttribute("LastExecutedVenus")
+                if lastCmd ~= cmdAttr then
+                    LocalPlayer.Character:SetAttribute("LastExecutedVenus", cmdAttr)
+                    executeCommand(cmd, args)
+                end
+            end
+            
+            local ctrlAttr = LocalPlayer.Character:GetAttribute("VenusController")
+            if ctrlAttr and ctrlAttr ~= "" and not controllerPlayer then
+                local p = Players:FindFirstChild(ctrlAttr)
+                if p then
                     controllerPlayer = p
                     updateStatus("SLAVE (Controlled by " .. p.Name .. ")", Color3.fromRGB(255, 50, 50))
-                    Notify("Dominance", p.Name .. " is now controlling you! Auto-Stand Active.", 5)
+                    Notify("WARNING", p.Name .. " is controlling you! Enable 'Allow Control' to obey.", 10)
                 end
-                
-                if controllerPlayer == p then
-                    local args = string.split(string.lower(msg), " ")
-                    executeCommand(args[1], args[2])
-                end
-            end)
+            end
         end
-    end
-    Players.PlayerAdded:Connect(function(p)
-        p.Chatted:Connect(function(msg)
-            if string.sub(msg, 1, 9) == "!v_cntrl" and not controllerPlayer then
-                controllerPlayer = p
-                updateStatus("SLAVE (Controlled by " .. p.Name .. ")", Color3.fromRGB(255, 50, 50))
-                Notify("Dominance", p.Name .. " is now controlling you! Auto-Stand Active.", 5)
-            end
-            if controllerPlayer == p then
-                local args = string.split(string.lower(msg), " ")
-                executeCommand(args[1], args[2])
-            end
-        end)
     end)
 end
 
-listenForController()
+initCommandListener()
 
 local MainTab = Window:CreateTab("Main", 4483362458)
 
@@ -629,14 +625,14 @@ MainTab:CreateButton({
    Name = "Connect & Dominate",
    Callback = function()
        local t = findPlayerPartial(connectInputName)
-       if t then
+       if t and t.Character then
            connectedTarget = t
            controllerPlayer = nil 
-           sendCmd("!v_cntrl")
+           t.Character:SetAttribute("VenusController", LocalPlayer.Name)
            updateStatus("MASTER (Controlling " .. t.Name .. ")", Color3.fromRGB(50, 255, 50))
-           Notify("Success", "Sent control signal to " .. t.Name, 3)
+           Notify("Success", "Signal sent to " .. t.Name, 3)
        else
-           Notify("Error", "Player not found", 3)
+           Notify("Error", "Player not found or Character missing", 3)
        end
    end,
 })
@@ -669,47 +665,66 @@ MainTab:CreateButton({
    end,
 })
 
+MainTab:CreateToggle({
+   Name = "Become Stand (Self Toggle)",
+   CurrentValue = false,
+   Flag = "StandToggle",
+   Callback = function(Value)
+       standMode = Value
+       if standMode then
+           Notify("Stand Mode", "You need to be connected to someone to orbit them.", 3)
+       else
+           if standPlatform then standPlatform:Destroy() standPlatform = nil end
+       end
+   end,
+})
+
 local RemoteTab = Window:CreateTab("Remote Admin", 4483362458)
 local RemoteSection = RemoteTab:CreateSection("Control Connected Partner")
 
 RemoteTab:CreateButton({
    Name = "Jumpscare Him",
-   Callback = function() sendCmd(".jumpscare") end,
+   Callback = function() sendCmd("jumpscare") end,
 })
 
 RemoteTab:CreateButton({
    Name = "Kill Him",
-   Callback = function() sendCmd(".kill") end,
+   Callback = function() sendCmd("kill") end,
 })
 
 RemoteTab:CreateButton({
    Name = "Fling Him",
-   Callback = function() sendCmd(".fling") end,
+   Callback = function() sendCmd("fling") end,
 })
 
 RemoteTab:CreateButton({
    Name = "Void Him",
-   Callback = function() sendCmd(".void") end,
+   Callback = function() sendCmd("void") end,
+})
+
+RemoteTab:CreateButton({
+   Name = "Make Him Stand Behind Me",
+   Callback = function() sendCmd("standpose") end,
 })
 
 RemoteTab:CreateButton({
    Name = "Force Fly",
-   Callback = function() sendCmd(".fly") end,
+   Callback = function() sendCmd("fly") end,
 })
 
 RemoteTab:CreateButton({
    Name = "Force Unfly",
-   Callback = function() sendCmd(".unfly") end,
+   Callback = function() sendCmd("unfly") end,
 })
 
 RemoteTab:CreateButton({
    Name = "Force Noclip",
-   Callback = function() sendCmd(".noclip") end,
+   Callback = function() sendCmd("noclip") end,
 })
 
 RemoteTab:CreateButton({
    Name = "Force Clip",
-   Callback = function() sendCmd(".clip") end,
+   Callback = function() sendCmd("clip") end,
 })
 
 local remoteTargetFlingName = ""
@@ -726,8 +741,24 @@ RemoteTab:CreateButton({
    Name = "Order Fling Player",
    Callback = function()
       if remoteTargetFlingName ~= "" then
-          sendCmd(".flingplayer " .. remoteTargetFlingName)
+          sendCmd("flingplayer " .. remoteTargetFlingName)
       end
+   end,
+})
+
+local SectionConnectConfig = MainTab:CreateSection("Settings")
+
+MainTab:CreateToggle({
+   Name = "Allow Control (Must enable to obey)",
+   CurrentValue = false,
+   Flag = "ControlToggle",
+   Callback = function(Value)
+       allowControl = Value
+       if Value then
+           Notify("Risk", "You are now obedient to the controller.", 5)
+       else
+           Notify("Safe", "You are ignoring commands.", 5)
+       end
    end,
 })
 
