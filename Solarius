@@ -718,7 +718,7 @@ local function broadcastSignal(id)
     end
 end
 
-local MainTab = Window:CreateTab("Be Controlled", 11389441)
+local MainTab = Window:CreateTab("Be Controlled", "cat")
 local connectInputName = ""
 
 MainTab:CreateLabel("Type a player's name to become their Stand/Controlled.")
@@ -746,7 +746,7 @@ MainTab:CreateButton({
     end,
 })
 
-local RemoteTab = Window:CreateTab("Control Others", 11389441)
+local RemoteTab = Window:CreateTab("Control Others", "cat")
 RemoteTab:CreateLabel("somethings may have confusing names.")
 
 RemoteTab:CreateSection("Movement")
@@ -813,7 +813,7 @@ RemoteTab:CreateButton({ Name = "Mock Chat", Callback = function() broadcastSign
 RemoteTab:CreateButton({ Name = "Confuse Inputs", Callback = function() broadcastSignal("507770054") end })
 RemoteTab:CreateButton({ Name = "Fix Inputs", Callback = function() broadcastSignal("507770055") end })
 
-local MiscTab = Window:CreateTab("Settings", 11389441)
+local MiscTab = Window:CreateTab("Settings", "cat")
 MiscTab:CreateButton({
     Name = "Destroy UI",
     Callback = function()
