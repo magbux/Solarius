@@ -477,7 +477,7 @@ MainTab:CreateButton({
 })
 
 local RemoteTab = Window:CreateTab("Control Others", 4483362458)
-RemoteTab:CreateLabel("Use these to control players running this script.")
+RemoteTab:CreateLabel("Use these to control players running this script somethings might not work.")
 
 local flingTargetName = ""
 RemoteTab:CreateInput({
