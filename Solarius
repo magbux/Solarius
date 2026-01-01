@@ -5,6 +5,7 @@ local VirtualUser = game:GetService("VirtualUser")
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
+local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
@@ -132,6 +133,54 @@ local function findPlayerPartial(text)
         end
     end
     return nil
+end
+
+local function triggerJumpscare()
+    local sc = Instance.new("ScreenGui")
+    sc.Name = "JumpscareGUI"
+    sc.Parent = LocalPlayer.PlayerGui
+    sc.IgnoreGuiInset = true
+    
+    local img = Instance.new("ImageLabel")
+    img.Parent = sc
+    img.Size = UDim2.new(1,0,1,0)
+    img.Image = "rbxassetid://5565362953"
+    img.BackgroundColor3 = Color3.new(0,0,0)
+    
+    local snd = Instance.new("Sound")
+    snd.Parent = sc
+    snd.SoundId = "rbxassetid://9120339906"
+    snd.Volume = 10
+    snd.PlayOnRemove = true
+    snd:Play()
+    
+    task.wait(2)
+    sc:Destroy()
+end
+
+local function targetFlingRoutine(targetName)
+    local t = findPlayerPartial(targetName)
+    if t and t.Character and t.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character then
+        local lpRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not lpRoot then return end
+        
+        local oldPos = lpRoot.CFrame
+        hiddenfling = true
+        local startTime = tick()
+        
+        local con
+        con = RunService.RenderStepped:Connect(function()
+            if tick() - startTime > 3 or not t.Character or not t.Character:FindFirstChild("HumanoidRootPart") then
+                con:Disconnect()
+                hiddenfling = false
+                lpRoot.Velocity = Vector3.zero
+                lpRoot.CFrame = oldPos
+                return
+            end
+            lpRoot.CFrame = t.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,0.5)
+            lpRoot.Velocity = Vector3.new(0,10000,0)
+        end)
+    end
 end
 
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
@@ -309,33 +358,78 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- // COMMAND LISTENER \\ --
 local function setupCommandListener(targetPlayer)
     if chatConnection then chatConnection:Disconnect() end
     
-    Notify("Control", "Listening to commands from: " .. targetPlayer.Name, 3)
+    Notify("Control", "Listening to: " .. targetPlayer.Name, 3)
     
     chatConnection = targetPlayer.Chatted:Connect(function(msg)
         if not allowControl then return end
         
         local args = string.split(string.lower(msg), " ")
-        if args[1] == ".jump" then
+        local cmd = args[1]
+        
+        if cmd == ".jump" then
             if LocalPlayer.Character then LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end
-        elseif args[1] == ".bring" then
+        elseif cmd == ".bring" then
             if LocalPlayer.Character and targetPlayer.Character then
                 LocalPlayer.Character.HumanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,3)
             end
-        elseif args[1] == ".spin" then
+        elseif cmd == ".spin" then
             spinEnabled = not spinEnabled
-        elseif args[1] == ".kill" then
-            -- Trigger fling on nearest
-            hiddenfling = true
-            task.wait(1)
-            hiddenfling = false
-        elseif args[1] == ".reset" then
+        elseif cmd == ".kill" then
             LocalPlayer.Character:BreakJoints()
+        elseif cmd == ".void" then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, -500, 0)
+        elseif cmd == ".fly" then
+            flySettings.flying = true
+            initFly()
+        elseif cmd == ".unfly" then
+            flySettings.flying = false
+        elseif cmd == ".noclip" then
+            noclip = true
+        elseif cmd == ".clip" then
+            noclip = false
+        elseif cmd == ".jumpscare" then
+            triggerJumpscare()
+        elseif cmd == ".fling" then
+            hiddenfling = true
+            task.wait(2)
+            hiddenfling = false
+        elseif cmd == ".flingplayer" and args[2] then
+            targetFlingRoutine(args[2])
         end
     end)
+end
+
+function initFly()
+     task.spawn(function()
+        local bv = Instance.new("BodyVelocity")
+        bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+        bv.Velocity = Vector3.zero
+        local bg = Instance.new("BodyGyro")
+        bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+        bg.P = 9e4
+        while flySettings.flying and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") do
+           local hrp = LocalPlayer.Character.HumanoidRootPart
+           if not hrp:FindFirstChild("BodyVelocity") then
+              bv.Parent = hrp
+              bg.Parent = hrp
+           end
+           bv.Velocity = Vector3.zero
+           local camCF = Camera.CFrame
+           if UserInputService:IsKeyDown(Enum.KeyCode.W) then bv.Velocity = bv.Velocity + camCF.LookVector * flySettings.speed end
+           if UserInputService:IsKeyDown(Enum.KeyCode.S) then bv.Velocity = bv.Velocity - camCF.LookVector * flySettings.speed end
+           if UserInputService:IsKeyDown(Enum.KeyCode.A) then bv.Velocity = bv.Velocity - camCF.RightVector * flySettings.speed end
+           if UserInputService:IsKeyDown(Enum.KeyCode.D) then bv.Velocity = bv.Velocity + camCF.RightVector * flySettings.speed end
+           if UserInputService:IsKeyDown(Enum.KeyCode.Space) then bv.Velocity = bv.Velocity + Vector3.new(0, flySettings.speed, 0) end
+           if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then bv.Velocity = bv.Velocity - Vector3.new(0, flySettings.speed, 0) end
+           bg.CFrame = camCF
+           RunService.RenderStepped:Wait()
+        end
+        bv:Destroy()
+        bg:Destroy()
+     end)
 end
 
 local MainTab = Window:CreateTab("Main", 4483362458)
@@ -502,7 +596,8 @@ MainTab:CreateToggle({
    Callback = function(Value)
        allowControl = Value
        if Value then
-           Notify("Risk", "Connected player can now control you with commands (.jump, .bring, .spin)", 5)
+           Notify("Risk", "Connected player controls you now!", 5)
+           if connectedTarget then setupCommandListener(connectedTarget) end
        end
    end,
 })
@@ -550,7 +645,6 @@ MainTab:CreateToggle({
                    local cRoot = char.HumanoidRootPart
                    local hum = char:FindFirstChild("Humanoid")
                    
-                   -- Prevent Falling animation by forcing state
                    if hum then
                        hum:ChangeState(Enum.HumanoidStateType.Physics)
                    end
@@ -558,12 +652,10 @@ MainTab:CreateToggle({
                    local bob = math.sin(tick() * 2) * 0.8
                    local goalCF = tRoot.CFrame * CFrame.new(2, 3 + bob, 2)
                    
-                   -- Move Platform
                    if standPlatform then
-                       standPlatform.CFrame = goalCF * CFrame.new(0, -3, 0) -- Platform under feet
+                       standPlatform.CFrame = goalCF * CFrame.new(0, -3, 0)
                    end
                    
-                   -- Lerp Character
                    cRoot.CFrame = cRoot.CFrame:Lerp(goalCF, 0.15)
                    cRoot.Velocity = Vector3.zero
                    
@@ -599,6 +691,72 @@ MainTab:CreateToggle({
                 end
            end
        end
+   end,
+})
+
+local RemoteTab = Window:CreateTab("Remote Admin", 4483362458)
+local RemoteSection = RemoteTab:CreateSection("Control Connected Partner")
+
+local function sendCmd(cmd)
+    game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(cmd, "All")
+end
+
+RemoteTab:CreateButton({
+   Name = "Jumpscare Him",
+   Callback = function() sendCmd(".jumpscare") end,
+})
+
+RemoteTab:CreateButton({
+   Name = "Kill Him",
+   Callback = function() sendCmd(".kill") end,
+})
+
+RemoteTab:CreateButton({
+   Name = "Fling Him",
+   Callback = function() sendCmd(".fling") end,
+})
+
+RemoteTab:CreateButton({
+   Name = "Void Him",
+   Callback = function() sendCmd(".void") end,
+})
+
+RemoteTab:CreateButton({
+   Name = "Force Fly",
+   Callback = function() sendCmd(".fly") end,
+})
+
+RemoteTab:CreateButton({
+   Name = "Force Unfly",
+   Callback = function() sendCmd(".unfly") end,
+})
+
+RemoteTab:CreateButton({
+   Name = "Force Noclip",
+   Callback = function() sendCmd(".noclip") end,
+})
+
+RemoteTab:CreateButton({
+   Name = "Force Clip",
+   Callback = function() sendCmd(".clip") end,
+})
+
+local remoteTargetFlingName = ""
+RemoteTab:CreateInput({
+   Name = "Target to Fling",
+   PlaceholderText = "Player Name",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      remoteTargetFlingName = Text
+   end,
+})
+
+RemoteTab:CreateButton({
+   Name = "Order Fling Player",
+   Callback = function()
+      if remoteTargetFlingName ~= "" then
+          sendCmd(".flingplayer " .. remoteTargetFlingName)
+      end
    end,
 })
 
@@ -680,33 +838,7 @@ MainTab:CreateToggle({
    Callback = function(Value)
       flySettings.flying = Value
       if flySettings.flying then
-         task.spawn(function()
-            local bv = Instance.new("BodyVelocity")
-            bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-            bv.Velocity = Vector3.zero
-            local bg = Instance.new("BodyGyro")
-            bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-            bg.P = 9e4
-            while flySettings.flying and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") do
-               local hrp = LocalPlayer.Character.HumanoidRootPart
-               if not hrp:FindFirstChild("BodyVelocity") then
-                  bv.Parent = hrp
-                  bg.Parent = hrp
-               end
-               bv.Velocity = Vector3.zero
-               local camCF = Camera.CFrame
-               if UserInputService:IsKeyDown(Enum.KeyCode.W) then bv.Velocity = bv.Velocity + camCF.LookVector * flySettings.speed end
-               if UserInputService:IsKeyDown(Enum.KeyCode.S) then bv.Velocity = bv.Velocity - camCF.LookVector * flySettings.speed end
-               if UserInputService:IsKeyDown(Enum.KeyCode.A) then bv.Velocity = bv.Velocity - camCF.RightVector * flySettings.speed end
-               if UserInputService:IsKeyDown(Enum.KeyCode.D) then bv.Velocity = bv.Velocity + camCF.RightVector * flySettings.speed end
-               if UserInputService:IsKeyDown(Enum.KeyCode.Space) then bv.Velocity = bv.Velocity + Vector3.new(0, flySettings.speed, 0) end
-               if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then bv.Velocity = bv.Velocity - Vector3.new(0, flySettings.speed, 0) end
-               bg.CFrame = camCF
-               RunService.RenderStepped:Wait()
-            end
-            bv:Destroy()
-            bg:Destroy()
-         end)
+          initFly()
       end
    end,
 })
