@@ -10,7 +10,6 @@ local Camera = workspace.CurrentCamera
 local hiddenfling = false
 local flingPower = 10000
 
--- // FLING PHYSICS \\ --
 if not ReplicatedStorage:FindFirstChild("juisdfj0i32i0eidsuf0iok") then
 	local detection = Instance.new("Decal")
 	detection.Name = "juisdfj0i32i0eidsuf0iok"
@@ -46,11 +45,16 @@ end
 
 task.spawn(fling)
 
--- // VARIABLES \\ --
+local Visualizer
 local invis_enabled = true
 local invis_on = false
 local current_method = 1
+local invis_transparency = 0.5
+local method1_speed = 1
+local voidLevelYThreshold = -500
 local seatTeleportPosition = Vector3.new(0, 5000, 0)
+local currentSeatPosition = nil
+local seatHeartbeat
 
 local flySettings = {flying = false, speed = 50}
 local noclip = false
@@ -60,24 +64,23 @@ local spinEnabled = false
 local spinSpeed = 20
 local spinBody
 
--- Connection Variables
 local controllerPlayer = nil 
 local isSlave = false
 local standPlatform = nil
 local isBusy = false
 local signalConnection = nil
 
--- // SIGNAL ANIMATION MAP (The "Silent" Language) \\ --
--- We use standard Roblox emote IDs that load instantly.
 local SIGNALS = {
-    ["507770239"] = "bring",    -- Point
-    ["507770453"] = "jump",     -- Laugh
-    ["507770677"] = "fling_target", -- Cheer (Attack who master is looking at)
-    ["507770818"] = "kill",     -- Salute
-    ["507771019"] = "stand",    -- Dance1 (Toggle Stand Mode)
-    ["507771955"] = "void",     -- Tilt
-    ["507772104"] = "spin",     -- Wave
-    ["507776879"] = "jumpscare" -- Shrug
+    ["507770239"] = "bring",
+    ["507770453"] = "jump",
+    ["507770677"] = "fling_target",
+    ["507770818"] = "kill",
+    ["507771019"] = "stand",
+    ["507771955"] = "void",
+    ["507772104"] = "spin",
+    ["507776879"] = "jumpscare",
+    ["507777623"] = "fly",
+    ["507770239"] = "unfly"
 }
 
 local StatusGui = Instance.new("ScreenGui")
@@ -108,6 +111,28 @@ StatusLabel.Parent = StatusFrame
 local function updateStatus(text, color)
     StatusLabel.Text = text
     StatusLabel.TextColor3 = color
+end
+
+local savedScripts = {}
+local scriptFileName = "Venus_SavedScripts.json"
+
+if isfile and isfile(scriptFileName) then
+    local decoded = HttpService:JSONDecode(readfile(scriptFileName))
+    if decoded then savedScripts = decoded end
+end
+
+local function saveScripts()
+    if writefile then
+        writefile(scriptFileName, HttpService:JSONEncode(savedScripts))
+    end
+end
+
+local function getScriptNames()
+    local names = {}
+    for n, _ in pairs(savedScripts) do
+        table.insert(names, n)
+    end
+    return names
 end
 
 local function getPlayerNames()
@@ -173,7 +198,6 @@ local function triggerJumpscare()
     sc:Destroy()
 end
 
--- // RAYCAST FINDER (For "Look at Target" Logic) \\ --
 local function getPlayerMasterIsLookingAt()
     if not controllerPlayer or not controllerPlayer.Character then return nil end
     local masterRoot = controllerPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -196,8 +220,15 @@ local function getPlayerMasterIsLookingAt()
     return nil
 end
 
-local function targetFlingRoutine(target)
-    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character then
+local function targetFlingRoutine(targetName)
+    local t = nil
+    if type(targetName) == "string" then
+        t = findPlayerPartial(targetName)
+    else
+        t = targetName
+    end
+    
+    if t and t.Character and t.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character then
         local lpRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not lpRoot then return end
         
@@ -208,7 +239,7 @@ local function targetFlingRoutine(target)
         
         local con
         con = RunService.RenderStepped:Connect(function()
-            if tick() - startTime > 2 or not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then
+            if tick() - startTime > 2 or not t.Character or not t.Character:FindFirstChild("HumanoidRootPart") then
                 con:Disconnect()
                 hiddenfling = false
                 lpRoot.Velocity = Vector3.zero
@@ -216,7 +247,7 @@ local function targetFlingRoutine(target)
                 isBusy = false
                 return
             end
-            lpRoot.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,0.5)
+            lpRoot.CFrame = t.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,0.5)
             lpRoot.Velocity = Vector3.new(0,10000,0)
         end)
     end
@@ -227,8 +258,8 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
    Name = "Venus",
    Icon = 0,
-   LoadingTitle = "Venus Silent",
-   LoadingSubtitle = "No Chat Required",
+   LoadingTitle = "Venus Client",
+   LoadingSubtitle = "Silent & Deadly",
    Theme = "Ocean",
    DisableRayfieldPrompts = false,
    DisableBuildWarnings = false,
@@ -466,6 +497,11 @@ local function executeCommand(cmd)
         LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, -500, 0)
         task.wait(1)
         isBusy = false
+    elseif cmd == "fly" then
+        flySettings.flying = true
+        initFly()
+    elseif cmd == "unfly" then
+        flySettings.flying = false
     elseif cmd == "jumpscare" then
         triggerJumpscare()
     elseif cmd == "fling" then
@@ -479,7 +515,7 @@ local function executeCommand(cmd)
         local t = getPlayerMasterIsLookingAt()
         if t then
             Notify("Attacking", "Master wants me to kill " .. t.Name, 3)
-            targetFlingRoutine(t.Name)
+            targetFlingRoutine(t)
         else
             isBusy = false
         end
@@ -527,7 +563,6 @@ local function broadcastSignal(id)
             local track = animator:LoadAnimation(anim)
             track.Priority = Enum.AnimationPriority.Action
             track:Play()
-            -- Stop quickly so it's just a signal blip, not a full dance
             task.wait(0.1)
             track:Stop()
         end
@@ -631,10 +666,140 @@ RemoteTab:CreateButton({
 })
 
 RemoteTab:CreateButton({
+   Name = "Force Fly",
+   Callback = function() broadcastSignal("507777623") end,
+})
+
+RemoteTab:CreateButton({
+   Name = "Force Unfly",
+   Callback = function() broadcastSignal("507770239") end,
+})
+
+RemoteTab:CreateButton({
    Name = "Attack My Target (Fling)",
    Callback = function() 
        Notify("Order", "Look at a player to order the attack!", 3)
        broadcastSignal("507770677") 
+   end,
+})
+
+local SectionTargets = MainTab:CreateSection("Target Actions")
+
+local selectedPlayer = nil
+local PlayerDropdown
+
+MainTab:CreateButton({
+   Name = "Refresh Player List",
+   Callback = function()
+       if PlayerDropdown then
+           PlayerDropdown:Refresh(getPlayerNames())
+       end
+   end,
+})
+
+PlayerDropdown = MainTab:CreateDropdown({
+   Name = "Select Target",
+   Options = getPlayerNames(),
+   CurrentOption = {""},
+   MultipleOptions = false,
+   Flag = "TargetDropdown",
+   Callback = function(Option)
+       selectedPlayer = Players:FindFirstChild(Option[1])
+   end,
+})
+
+MainTab:CreateToggle({
+   Name = "Spectate Target",
+   CurrentValue = false,
+   Flag = "SpectateToggle",
+   Callback = function(Value)
+       if Value and selectedPlayer then
+           if selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("Humanoid") then
+               Camera.CameraSubject = selectedPlayer.Character.Humanoid
+           end
+       else
+           if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+               Camera.CameraSubject = LocalPlayer.Character.Humanoid
+           end
+       end
+   end,
+})
+
+MainTab:CreateButton({
+   Name = "Teleport To Target",
+   Callback = function()
+       if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character then
+           LocalPlayer.Character.HumanoidRootPart.CFrame = selectedPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 1)
+       end
+   end,
+})
+
+local SectionIdentity = MainTab:CreateSection("Identity")
+
+MainTab:CreateInput({
+   Name = "Fake Username (Local & Overhead)",
+   PlaceholderText = "Enter Name",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      if LocalPlayer.Character then
+         local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
+         if hum then hum.DisplayName = Text end
+         for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+             if v:IsA("TextLabel") or v:IsA("TextButton") then
+                 if string.find(v.Text, LocalPlayer.Name) or string.find(v.Text, LocalPlayer.DisplayName) then
+                     v.Text = Text
+                 end
+             end
+         end
+      end
+   end,
+})
+
+local InfoTab = Window:CreateTab("Player Info", 4483362458)
+local InfoSection = InfoTab:CreateSection("Get Player Details")
+
+local infoTargetName = ""
+
+InfoTab:CreateInput({
+   Name = "Player Name",
+   PlaceholderText = "e.g., brian",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      infoTargetName = Text
+   end,
+})
+
+InfoTab:CreateButton({
+   Name = "Get Info",
+   Callback = function()
+       local target = findPlayerPartial(infoTargetName)
+       if target then
+           local char = target.Character
+           local health = "N/A"
+           local maxHealth = "N/A"
+           local team = target.Team and target.Team.Name or "Neutral"
+           local tool = "None"
+           local pos = "N/A"
+           
+           if char then
+               local hum = char:FindFirstChild("Humanoid")
+               if hum then
+                   health = math.floor(hum.Health)
+                   maxHealth = math.floor(hum.MaxHealth)
+               end
+               local equip = char:FindFirstChildOfClass("Tool")
+               if equip then tool = equip.Name end
+               local hrp = char:FindFirstChild("HumanoidRootPart")
+               if hrp then
+                   pos = math.floor(hrp.Position.X) .. ", " .. math.floor(hrp.Position.Y) .. ", " .. math.floor(hrp.Position.Z)
+               end
+           end
+           
+           local age = target.AccountAge
+           Notify("Info: " .. target.Name, "HP: " .. health .. "\nTeam: " .. team .. "\nTool: " .. tool .. "\nAge: " .. age .. " days", 10)
+       else
+           Notify("Error", "Player not found", 3)
+       end
    end,
 })
 
@@ -750,6 +915,147 @@ MainTab:CreateButton({
        end)
        tool.Parent = LocalPlayer.Backpack
        Notify("Tool", "Click TP added to Backpack", 2)
+   end,
+})
+
+local ScriptHubTab = Window:CreateTab("Script Hub", 4483362458)
+local SectionScripts = ScriptHubTab:CreateSection("Pre-made Scripts")
+
+ScriptHubTab:CreateButton({
+   Name = "Infinite Yield",
+   Callback = function()
+      loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
+   end,
+})
+
+ScriptHubTab:CreateButton({
+   Name = "Remote Spy",
+   Callback = function()
+      loadstring(game:HttpGet("https://github.com/exxtremestuffs/SimpleSpySource/raw/master/SimpleSpy.lua"))()
+   end,
+})
+
+local SectionTemp = ScriptHubTab:CreateSection("Temporary Executor")
+
+local tempScript = ""
+
+local TempInput = ScriptHubTab:CreateInput({
+   Name = "Script Loader",
+   PlaceholderText = "Paste script or loadstring here...",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      tempScript = Text
+   end,
+})
+
+ScriptHubTab:CreateButton({
+   Name = "Execute",
+   Callback = function()
+      if tempScript ~= "" then
+          local func, loadErr = loadstring(tempScript)
+          if not func then
+              Notify("Syntax Error", tostring(loadErr), 3)
+          else
+              local success, err = pcall(func)
+              if not success then
+                  Notify("Runtime Error", tostring(err), 3)
+              else
+                  Notify("Success", "Script Executed", 2)
+              end
+          end
+      end
+   end,
+})
+
+ScriptHubTab:CreateButton({
+   Name = "Clear",
+   Callback = function()
+      tempScript = ""
+      TempInput:Set("")
+   end,
+})
+
+local SectionSaved = ScriptHubTab:CreateSection("Saved Scripts Manager")
+
+local savedScriptName = ""
+local savedScriptCode = ""
+local ScriptsDropdown
+
+ScriptHubTab:CreateInput({
+   Name = "Script Name",
+   PlaceholderText = "e.g., Infinite Yield",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      savedScriptName = Text
+   end,
+})
+
+ScriptHubTab:CreateInput({
+   Name = "Script Code/URL",
+   PlaceholderText = "Paste code here",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      savedScriptCode = Text
+   end,
+})
+
+ScriptHubTab:CreateButton({
+   Name = "Save Script",
+   Callback = function()
+      if savedScriptName ~= "" and savedScriptCode ~= "" then
+          savedScripts[savedScriptName] = savedScriptCode
+          saveScripts()
+          Notify("Saved", savedScriptName .. " added!", 2)
+          if ScriptsDropdown then
+              ScriptsDropdown:Refresh(getScriptNames())
+          end
+      else
+          Notify("Error", "Name or Code is empty", 2)
+      end
+   end,
+})
+
+ScriptsDropdown = ScriptHubTab:CreateDropdown({
+   Name = "Your Saved Scripts",
+   Options = getScriptNames(),
+   CurrentOption = {""},
+   MultipleOptions = false,
+   Flag = "ScriptsDropdown",
+   Callback = function(Option)
+   end,
+})
+
+ScriptHubTab:CreateButton({
+   Name = "Execute Selected",
+   Callback = function()
+      local selected = ScriptsDropdown.CurrentOption[1]
+      if selected and savedScripts[selected] then
+          local code = savedScripts[selected]
+          local func, loadErr = loadstring(code)
+          if not func then
+             Notify("Error", tostring(loadErr), 3)
+          else
+             local success, err = pcall(func)
+             if not success then
+                 Notify("Error", tostring(err), 3)
+             else
+                 Notify("Executed", selected, 2)
+             end
+          end
+      end
+   end,
+})
+
+ScriptHubTab:CreateButton({
+   Name = "Delete Selected",
+   Callback = function()
+      local selected = ScriptsDropdown.CurrentOption[1]
+      if selected and savedScripts[selected] then
+          savedScripts[selected] = nil
+          saveScripts()
+          ScriptsDropdown:Refresh(getScriptNames())
+          Notify("Deleted", selected .. " removed.", 2)
+      end
    end,
 })
 
