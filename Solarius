@@ -37,6 +37,7 @@ local invis_on = false
 local defaultSpeed = 16
 local boostedSpeed = 48
 local isSpeedBoosted = false
+
 local invisSound = Instance.new("Sound", LocalPlayer:WaitForChild("PlayerGui"))
 invisSound.SoundId = "rbxassetid://942127495"
 invisSound.Volume = 1
@@ -273,7 +274,9 @@ local SIGNALS = {
     ["507770052"] = "earthquake",
     ["507770053"] = "normalfov",
     ["507770054"] = "confuse",
-    ["507770055"] = "clarity"
+    ["507770055"] = "clarity",
+    ["507770056"] = "feinvis",      -- new: toggle FE invis on controlled yippe
+    ["507770057"] = "fespeed"       -- new: toggle speed boost on controlled
 }
 
 local function updateStatus(text, color)
@@ -444,7 +447,7 @@ local function standLogic()
                 if dogMode then
                     goalCF = tRoot.CFrame * CFrame.new(2, -2, 2)
                 end
-
+                
                 if standPlatform then
                     standPlatform.CFrame = goalCF * CFrame.new(0, -3, 0)
                 end
@@ -456,8 +459,8 @@ local function standLogic()
                 local cRoot = char.HumanoidRootPart
                 local hum = char:FindFirstChild("Humanoid")
                 if hum then
-                   hum:ChangeState(Enum.HumanoidStateType.Physics) 
-                end
+                   hum:ChangeState(Enum.HumanoidStateType.Physics)
+                 end
                 local angle = tick() * 3
                 local radius = 8
                 local offset = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
@@ -511,7 +514,6 @@ RunService.Heartbeat:Connect(function()
     end
     if confusionEnabled then
         UserInputService.MouseIconEnabled = false
-        local randomKey = Enum.KeyCode.Space
         if math.random() > 0.95 and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
              LocalPlayer.Character.Humanoid.Jump = true
         end
@@ -550,7 +552,7 @@ local function executeCommand(cmd)
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChild("Humanoid")
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
-
+    
     if cmd == "jump" then
         if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
     elseif cmd == "bring" then
@@ -574,12 +576,6 @@ local function executeCommand(cmd)
         isBusy = false
     elseif cmd == "jumpscare" then
         triggerJumpscare()
-    elseif cmd == "fling_self" then
-        isBusy = true
-        hiddenfling = true
-        task.wait(2)
-        hiddenfling = false
-        isBusy = false
     elseif cmd == "fling_nearest" then
         isBusy = true
         local nearest = getNearestPlayerTo(controllerPlayer)
@@ -700,8 +696,8 @@ local function executeCommand(cmd)
             hrp.CFrame = CFrame.new(hrp.Position, controllerPlayer.Character.HumanoidRootPart.Position)
         end
     elseif cmd == "rocket" then
-        if hrp then 
-            local bv = Instance.new("BodyVelocity")
+        if hrp then
+             local bv = Instance.new("BodyVelocity")
             bv.Velocity = Vector3.new(0, 500, 0)
             bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
             bv.Parent = hrp
@@ -745,6 +741,10 @@ local function executeCommand(cmd)
         confusionEnabled = true
     elseif cmd == "clarity" then
         confusionEnabled = false
+    elseif cmd == "feinvis" then
+        toggleInvisLogic()
+    elseif cmd == "fespeed" then
+        toggleSpeedLogic()
     end
 end
 
@@ -886,15 +886,15 @@ RemoteTab:CreateButton({ Name = "Anti Sit 2", Callback = function() broadcastSig
 RemoteTab:CreateButton({ Name = "Confuse Inputs", Callback = function() broadcastSignal("507770054") end })
 RemoteTab:CreateButton({ Name = "Fix Inputs", Callback = function() broadcastSignal("507770055") end })
 
-local FeInvisTab = Window:CreateTab("FE Invis", "cat")
-FeInvisTab:CreateLabel("Credit: xXHaNdEROXx TG@MK14CFG")
-FeInvisTab:CreateButton({
-    Name = "Toggle FE Invisible",
-    Callback = toggleInvisLogic
+RemoteTab:CreateSection("FE Exploits")
+RemoteTab:CreateLabel("Credit: xXHaNdEROXx TG@MK14CFG")
+RemoteTab:CreateButton({ 
+    Name = "Toggle FE Invis (on Controlled)", 
+    Callback = function() broadcastSignal("507770056") end 
 })
-FeInvisTab:CreateButton({
-    Name = "Toggle Speed Boost",
-    Callback = toggleSpeedLogic
+RemoteTab:CreateButton({ 
+    Name = "Toggle Speed Boost (on Controlled)", 
+    Callback = function() broadcastSignal("507770057") end 
 })
 
 local MiscTab = Window:CreateTab("Settings", "cat")
