@@ -2,6 +2,8 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
@@ -10,12 +12,17 @@ local flingPower = 10000
 local spinEnabled = false
 local spinSpeed = 20
 local blackoutEnabled = false
+local orbitEnabled = false
+local spasmEnabled = false
+local shakeEnabled = false
 
 local controllerPlayer = nil
 local isControlled = false
 local standPlatform = nil
 local isBusy = false
 local signalConnection = nil
+local originalWalkSpeed = 16
+local originalJumpPower = 50
 
 if not ReplicatedStorage:FindFirstChild("juisdfj0i32i0eidsuf0iok") then
     local detection = Instance.new("Decal")
@@ -61,7 +68,31 @@ local SIGNALS = {
     ["507776879"] = "jumpscare",
     ["507766388"] = "free",
     ["507771666"] = "fling_self",
-    ["507765000"] = "blackout"
+    ["507765000"] = "blackout",
+    ["507770011"] = "freeze",
+    ["507770012"] = "unfreeze",
+    ["507770013"] = "sit",
+    ["507770014"] = "trip",
+    ["507770015"] = "orbit",
+    ["507770016"] = "stop_orbit",
+    ["507770017"] = "headless",
+    ["507770018"] = "noarms",
+    ["507770019"] = "explode",
+    ["507770020"] = "fakekick",
+    ["507770021"] = "blur",
+    ["507770022"] = "unblur",
+    ["507770023"] = "screenshake",
+    ["507770024"] = "force1st",
+    ["507770025"] = "fixcam",
+    ["507770026"] = "slow",
+    ["507770027"] = "fast",
+    ["507770028"] = "lowgrav",
+    ["507770029"] = "normgrav",
+    ["507770030"] = "spasm",
+    ["507770031"] = "unglitch",
+    ["507770032"] = "naked",
+    ["507770033"] = "float",
+    ["507770034"] = "sink"
 }
 
 local StatusGui = Instance.new("ScreenGui")
@@ -180,7 +211,7 @@ end
 local function standLogic()
     if isControlled and controllerPlayer and controllerPlayer.Character and controllerPlayer.Character:FindFirstChild("HumanoidRootPart") then
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            if not isBusy then
+            if not isBusy and not orbitEnabled then
                 local char = LocalPlayer.Character
                 local tRoot = controllerPlayer.Character.HumanoidRootPart
                 local cRoot = char.HumanoidRootPart
@@ -208,6 +239,20 @@ local function standLogic()
                 end
                 cRoot.CFrame = cRoot.CFrame:Lerp(goalCF, 0.15)
                 cRoot.Velocity = Vector3.zero
+            elseif orbitEnabled then
+                local char = LocalPlayer.Character
+                local tRoot = controllerPlayer.Character.HumanoidRootPart
+                local cRoot = char.HumanoidRootPart
+                local hum = char:FindFirstChild("Humanoid")
+                if hum then
+                   hum:ChangeState(Enum.HumanoidStateType.Physics) 
+                end
+                local angle = tick() * 3
+                local radius = 8
+                local offset = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+                local goalCF = tRoot.CFrame + offset
+                cRoot.CFrame = CFrame.new(goalCF.Position, tRoot.Position)
+                cRoot.Velocity = Vector3.zero
             else
                 if standPlatform then standPlatform.CFrame = CFrame.new(0, -500, 0) end
             end
@@ -221,6 +266,14 @@ RunService.Heartbeat:Connect(standLogic)
 RunService.Heartbeat:Connect(function()
     if spinEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(spinSpeed), 0)
+    end
+    if spasmEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(math.random(-50,50), math.random(-50,50), math.random(-50,50))
+        LocalPlayer.Character.HumanoidRootPart.RotVelocity = Vector3.new(math.random(-20,20), math.random(-20,20), math.random(-20,20))
+    end
+    if shakeEnabled then
+        local intensity = 0.5
+        Camera.CFrame = Camera.CFrame * CFrame.new(math.random() * intensity - (intensity / 2), math.random() * intensity - (intensity / 2), 0)
     end
 end)
 
@@ -244,13 +297,17 @@ end)
 
 local function executeCommand(cmd)
     if not isControlled then return end
-    Notify("Command Received", cmd, 3)
+    Notify("Cmd", cmd, 2)
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChild("Humanoid")
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
     if cmd == "jump" then
-        if LocalPlayer.Character then LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
     elseif cmd == "bring" then
         isBusy = true
-        if LocalPlayer.Character and controllerPlayer and controllerPlayer.Character then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = controllerPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,2.5)
+        if char and controllerPlayer and controllerPlayer.Character then
+            hrp.CFrame = controllerPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,2.5)
         end
         task.wait(0.5)
         isBusy = false
@@ -258,12 +315,12 @@ local function executeCommand(cmd)
         spinEnabled = not spinEnabled
     elseif cmd == "kill" then
         isBusy = true
-        LocalPlayer.Character:BreakJoints()
+        char:BreakJoints()
         task.wait(1)
         isBusy = false
     elseif cmd == "void" then
         isBusy = true
-        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, -500, 0)
+        hrp.CFrame = CFrame.new(0, -500, 0)
         task.wait(1)
         isBusy = false
     elseif cmd == "jumpscare" then
@@ -276,17 +333,15 @@ local function executeCommand(cmd)
         isBusy = false
     elseif cmd == "stand" then
         isBusy = false
+        orbitEnabled = false
     elseif cmd == "free" then
         isControlled = false
         controllerPlayer = nil
-        if signalConnection then
-            signalConnection:Disconnect()
-            signalConnection = nil
-        end
-        if standPlatform then
-            standPlatform:Destroy()
-            standPlatform = nil
-        end
+        orbitEnabled = false
+        spasmEnabled = false
+        shakeEnabled = false
+        if signalConnection then signalConnection:Disconnect() signalConnection = nil end
+        if standPlatform then standPlatform:Destroy() standPlatform = nil end
         updateStatus("STATUS: FREE", Color3.fromRGB(100, 255, 100))
         Notify("Freed", "You are no longer controlled.", 5)
     elseif cmd == "blackout" then
@@ -294,7 +349,59 @@ local function executeCommand(cmd)
         if not blackoutEnabled and LocalPlayer.PlayerGui:FindFirstChild("BlackoutGui") then
             LocalPlayer.PlayerGui.BlackoutGui:Destroy()
         end
-        Notify("Blackout", blackoutEnabled and "Enabled (permanent)" or "Disabled", 3)
+    elseif cmd == "freeze" then
+        if hrp then hrp.Anchored = true end
+    elseif cmd == "unfreeze" then
+        if hrp then hrp.Anchored = false end
+    elseif cmd == "sit" then
+        if hum then hum.Sit = true end
+    elseif cmd == "trip" then
+        if hum then hum:ChangeState(Enum.HumanoidStateType.FallingDown) end
+    elseif cmd == "orbit" then
+        orbitEnabled = true
+        isBusy = false
+    elseif cmd == "stop_orbit" then
+        orbitEnabled = false
+    elseif cmd == "headless" then
+        if char and char:FindFirstChild("Head") then char.Head.Transparency = 1 if char.Head:FindFirstChild("face") then char.Head.face.Transparency = 1 end end
+    elseif cmd == "noarms" then
+        if char then for _, v in pairs(char:GetChildren()) do if v.Name:find("Arm") or v.Name:find("Hand") then if v:IsA("BasePart") then v.Transparency = 1 end end end end
+    elseif cmd == "naked" then
+        if char then for _, v in pairs(char:GetChildren()) do if v:IsA("Clothing") or v:IsA("ShirtGraphic") or v:IsA("Accessory") then v:Destroy() end end end
+    elseif cmd == "explode" then
+        if hrp then local ex = Instance.new("Explosion") ex.Position = hrp.Position ex.Parent = workspace char:BreakJoints() end
+    elseif cmd == "fakekick" then
+        LocalPlayer:Kick("You have been kicked by the Controller.")
+    elseif cmd == "blur" then
+        local bl = Instance.new("BlurEffect") bl.Name = "ControlledBlur" bl.Size = 24 bl.Parent = Lighting
+    elseif cmd == "unblur" then
+        for _, v in pairs(Lighting:GetChildren()) do if v.Name == "ControlledBlur" then v:Destroy() end end
+    elseif cmd == "screenshake" then
+        shakeEnabled = not shakeEnabled
+    elseif cmd == "force1st" then
+        LocalPlayer.CameraMode = Enum.CameraMode.LockFirstPerson
+    elseif cmd == "fixcam" then
+        LocalPlayer.CameraMode = Enum.CameraMode.Classic
+        shakeEnabled = false
+    elseif cmd == "slow" then
+        if hum then hum.WalkSpeed = 4 end
+    elseif cmd == "fast" then
+        if hum then hum.WalkSpeed = 100 end
+    elseif cmd == "lowgrav" then
+        workspace.Gravity = 10
+    elseif cmd == "normgrav" then
+        workspace.Gravity = 196.2
+    elseif cmd == "spasm" then
+        spasmEnabled = true
+    elseif cmd == "unglitch" then
+        spasmEnabled = false
+        if hrp then hrp.Anchored = false end
+        if hum then hum.Sit = false hum.WalkSpeed = 16 end
+        workspace.Gravity = 196.2
+    elseif cmd == "float" then
+        if hrp then local b = Instance.new("BodyVelocity") b.Name = "FloatVel" b.Velocity = Vector3.new(0,10,0) b.MaxForce = Vector3.new(0,math.huge,0) b.Parent = hrp task.delay(3, function() b:Destroy() end) end
+    elseif cmd == "sink" then
+         if hrp then hrp.CFrame = hrp.CFrame * CFrame.new(0, -10, 0) end
     end
 end
 
@@ -371,7 +478,6 @@ MainTab:CreateButton({
 
 local RemoteTab = Window:CreateTab("Control Others", 4483362458)
 RemoteTab:CreateLabel("Use these to control players running this script.")
-RemoteTab:CreateLabel("You must use an animation script or these buttons.")
 
 local flingTargetName = ""
 RemoteTab:CreateInput({
@@ -394,47 +500,47 @@ RemoteTab:CreateButton({
     end,
 })
 
-RemoteTab:CreateSection("Commands")
-RemoteTab:CreateButton({
-    Name = "Toggle Controlled Blackout (Blind)",
-    Callback = function() broadcastSignal("507765000") end,
-})
-RemoteTab:CreateButton({
-    Name = "Jumpscare Them",
-    Callback = function() broadcastSignal("507776879") end,
-})
-RemoteTab:CreateButton({
-    Name = "Kill Them",
-    Callback = function() broadcastSignal("507770818") end,
-})
-RemoteTab:CreateButton({
-    Name = "Fling Them (Up)",
-    Callback = function() broadcastSignal("507771666") end,
-})
-RemoteTab:CreateButton({
-    Name = "Void Them",
-    Callback = function() broadcastSignal("507771955") end,
-})
-RemoteTab:CreateButton({
-    Name = "Summon as Stand (Reset)",
-    Callback = function() broadcastSignal("507771019") end,
-})
-RemoteTab:CreateButton({
-    Name = "Bring Controlled to Me",
-    Callback = function() broadcastSignal("507770239") end,
-})
-RemoteTab:CreateButton({
-    Name = "Make Controlled Jump",
-    Callback = function() broadcastSignal("507770453") end,
-})
-RemoteTab:CreateButton({
-    Name = "Toggle Controlled Spin",
-    Callback = function() broadcastSignal("507772104") end,
-})
-RemoteTab:CreateButton({
-    Name = "Free Controlled",
-    Callback = function() broadcastSignal("507766388") end,
-})
+RemoteTab:CreateSection("Movement")
+RemoteTab:CreateButton({ Name = "Bring Controlled", Callback = function() broadcastSignal("507770239") end })
+RemoteTab:CreateButton({ Name = "Stand Mode (Reset)", Callback = function() broadcastSignal("507771019") end })
+RemoteTab:CreateButton({ Name = "Orbit Mode", Callback = function() broadcastSignal("507770015") end })
+RemoteTab:CreateButton({ Name = "Jump", Callback = function() broadcastSignal("507770453") end })
+RemoteTab:CreateButton({ Name = "Sit", Callback = function() broadcastSignal("507770013") end })
+RemoteTab:CreateButton({ Name = "Trip (Ragdoll)", Callback = function() broadcastSignal("507770014") end })
+RemoteTab:CreateButton({ Name = "Freeze", Callback = function() broadcastSignal("507770011") end })
+RemoteTab:CreateButton({ Name = "Unfreeze", Callback = function() broadcastSignal("507770012") end })
+RemoteTab:CreateButton({ Name = "Float Up", Callback = function() broadcastSignal("507770033") end })
+RemoteTab:CreateButton({ Name = "Sink Floor", Callback = function() broadcastSignal("507770034") end })
+
+RemoteTab:CreateSection("Visuals & Effects")
+RemoteTab:CreateButton({ Name = "Blackout (Blind)", Callback = function() broadcastSignal("507765000") end })
+RemoteTab:CreateButton({ Name = "Jumpscare", Callback = function() broadcastSignal("507776879") end })
+RemoteTab:CreateButton({ Name = "Blur Screen", Callback = function() broadcastSignal("507770021") end })
+RemoteTab:CreateButton({ Name = "Unblur Screen", Callback = function() broadcastSignal("507770022") end })
+RemoteTab:CreateButton({ Name = "Screen Shake", Callback = function() broadcastSignal("507770023") end })
+RemoteTab:CreateButton({ Name = "Force 1st Person", Callback = function() broadcastSignal("507770024") end })
+RemoteTab:CreateButton({ Name = "Fix Camera", Callback = function() broadcastSignal("507770025") end })
+
+RemoteTab:CreateSection("Body Mods")
+RemoteTab:CreateButton({ Name = "Headless", Callback = function() broadcastSignal("507770017") end })
+RemoteTab:CreateButton({ Name = "Remove Arms", Callback = function() broadcastSignal("507770018") end })
+RemoteTab:CreateButton({ Name = "Naked", Callback = function() broadcastSignal("507770032") end })
+RemoteTab:CreateButton({ Name = "Spinbot", Callback = function() broadcastSignal("507772104") end })
+RemoteTab:CreateButton({ Name = "Spasm/Glitch", Callback = function() broadcastSignal("507770030") end })
+
+RemoteTab:CreateSection("Destructive")
+RemoteTab:CreateButton({ Name = "Kill", Callback = function() broadcastSignal("507770818") end })
+RemoteTab:CreateButton({ Name = "Explode", Callback = function() broadcastSignal("507770019") end })
+RemoteTab:CreateButton({ Name = "Void (TP Down)", Callback = function() broadcastSignal("507771955") end })
+RemoteTab:CreateButton({ Name = "Fling (Up)", Callback = function() broadcastSignal("507771666") end })
+RemoteTab:CreateButton({ Name = "Fake Kick (Ban)", Callback = function() broadcastSignal("507770020") end })
+
+RemoteTab:CreateSection("Environment")
+RemoteTab:CreateButton({ Name = "Slow Walk", Callback = function() broadcastSignal("507770026") end })
+RemoteTab:CreateButton({ Name = "Super Speed", Callback = function() broadcastSignal("507770027") end })
+RemoteTab:CreateButton({ Name = "Low Gravity", Callback = function() broadcastSignal("507770028") end })
+RemoteTab:CreateButton({ Name = "Reset Physics/Speed", Callback = function() broadcastSignal("507770031") end })
+RemoteTab:CreateButton({ Name = "Free All", Callback = function() broadcastSignal("507766388") end })
 
 local MiscTab = Window:CreateTab("Settings", 4483362458)
 MiscTab:CreateButton({
