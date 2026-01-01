@@ -326,7 +326,7 @@ local function standLogic()
                     standPlatform.Parent = workspace
                 end
                 local bob = math.sin(tick() * 2) * 0.8
-                local goalCF = tRoot.CFrame * CFrame.new(0, 3 + bob, -0.25)
+                local goalCF = tRoot.CFrame * CFrame.new(0, 3 + bob, -0.5)
                 if standPlatform then
                     standPlatform.CFrame = goalCF * CFrame.new(0, -3, 0)
                 end
