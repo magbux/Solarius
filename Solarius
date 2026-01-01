@@ -12,6 +12,7 @@ local Camera = workspace.CurrentCamera
 local hiddenfling = false
 local flingPower = 10000
 
+-- // FLING LOGIC \\ --
 if not ReplicatedStorage:FindFirstChild("juisdfj0i32i0eidsuf0iok") then
 	local detection = Instance.new("Decal")
 	detection.Name = "juisdfj0i32i0eidsuf0iok"
@@ -47,6 +48,7 @@ end
 
 task.spawn(fling)
 
+-- // VARIABLES \\ --
 local Visualizer
 local invis_enabled = true
 local invis_on = false
@@ -66,12 +68,41 @@ local spinEnabled = false
 local spinSpeed = 20
 local spinBody
 
-local connectedTarget = nil
-local standMode = false
-local standConnection = nil
-local chatConnection = nil
-local allowControl = false
+-- Connection Variables
+local connectedTarget = nil -- The player I am controlling (Master View)
+local controllerPlayer = nil -- The player controlling me (Slave View)
+local isBusy = false -- If true, Auto-Stand pauses to let commands happen
 local standPlatform = nil
+
+local StatusGui = Instance.new("ScreenGui")
+StatusGui.Name = "VenusStatus"
+StatusGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+StatusGui.ResetOnSpawn = false
+
+local StatusFrame = Instance.new("Frame")
+StatusFrame.Size = UDim2.new(0, 300, 0, 30)
+StatusFrame.Position = UDim2.new(0.5, -150, 0, 10)
+StatusFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+StatusFrame.BorderSizePixel = 0
+StatusFrame.Parent = StatusGui
+
+local StatusCorner = Instance.new("UICorner")
+StatusCorner.CornerRadius = UDim.new(0, 6)
+StatusCorner.Parent = StatusFrame
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(1, 0, 1, 0)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "STATUS: IDLE"
+StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+StatusLabel.Font = Enum.Font.GothamBold
+StatusLabel.TextSize = 14
+StatusLabel.Parent = StatusFrame
+
+local function updateStatus(text, color)
+    StatusLabel.Text = text
+    StatusLabel.TextColor3 = color
+end
 
 local savedScripts = {}
 local scriptFileName = "Venus_SavedScripts.json"
@@ -164,6 +195,7 @@ local function targetFlingRoutine(targetName)
         local lpRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if not lpRoot then return end
         
+        isBusy = true -- Pause Stand
         local oldPos = lpRoot.CFrame
         hiddenfling = true
         local startTime = tick()
@@ -175,6 +207,7 @@ local function targetFlingRoutine(targetName)
                 hiddenfling = false
                 lpRoot.Velocity = Vector3.zero
                 lpRoot.CFrame = oldPos
+                isBusy = false -- Resume Stand
                 return
             end
             lpRoot.CFrame = t.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,0.5)
@@ -358,50 +391,6 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
-local function setupCommandListener(targetPlayer)
-    if chatConnection then chatConnection:Disconnect() end
-    
-    Notify("Control", "Listening to: " .. targetPlayer.Name, 3)
-    
-    chatConnection = targetPlayer.Chatted:Connect(function(msg)
-        if not allowControl then return end
-        
-        local args = string.split(string.lower(msg), " ")
-        local cmd = args[1]
-        
-        if cmd == ".jump" then
-            if LocalPlayer.Character then LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end
-        elseif cmd == ".bring" then
-            if LocalPlayer.Character and targetPlayer.Character then
-                LocalPlayer.Character.HumanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,3)
-            end
-        elseif cmd == ".spin" then
-            spinEnabled = not spinEnabled
-        elseif cmd == ".kill" then
-            LocalPlayer.Character:BreakJoints()
-        elseif cmd == ".void" then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, -500, 0)
-        elseif cmd == ".fly" then
-            flySettings.flying = true
-            initFly()
-        elseif cmd == ".unfly" then
-            flySettings.flying = false
-        elseif cmd == ".noclip" then
-            noclip = true
-        elseif cmd == ".clip" then
-            noclip = false
-        elseif cmd == ".jumpscare" then
-            triggerJumpscare()
-        elseif cmd == ".fling" then
-            hiddenfling = true
-            task.wait(2)
-            hiddenfling = false
-        elseif cmd == ".flingplayer" and args[2] then
-            targetFlingRoutine(args[2])
-        end
-    end)
-end
-
 function initFly()
      task.spawn(function()
         local bv = Instance.new("BodyVelocity")
@@ -412,6 +401,12 @@ function initFly()
         bg.P = 9e4
         while flySettings.flying and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") do
            local hrp = LocalPlayer.Character.HumanoidRootPart
+           local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
+           
+           if hum then
+               hum:ChangeState(Enum.HumanoidStateType.Running)
+           end
+           
            if not hrp:FindFirstChild("BodyVelocity") then
               bv.Parent = hrp
               bg.Parent = hrp
@@ -431,6 +426,155 @@ function initFly()
         bg:Destroy()
      end)
 end
+
+local jojoPose = {
+    ["Torso"] = {rx=10, ry=0, rz=0},
+    ["Head"] = {rx=-10, ry=0, rz=0},
+    ["Left Arm"] = {rx=30, rz=-45, ry=20},
+    ["Right Arm"] = {rx=90, rz=0, ry=0},
+    ["Left Leg"] = {rx=20, rz=-5},
+    ["Right Leg"] = {rx=10, rz=5}
+}
+
+-- AUTO STAND LOGIC FOR SLAVE
+RunService.Heartbeat:Connect(function()
+    if controllerPlayer and controllerPlayer.Character and controllerPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            -- Only become stand if NOT busy performing other commands
+            if not isBusy then
+                local char = LocalPlayer.Character
+                local tRoot = controllerPlayer.Character.HumanoidRootPart
+                local cRoot = char.HumanoidRootPart
+                local hum = char:FindFirstChild("Humanoid")
+                
+                if hum then
+                    hum:ChangeState(Enum.HumanoidStateType.Physics)
+                end
+                
+                -- Ensure Platform Exists
+                if not standPlatform then
+                   standPlatform = Instance.new("Part")
+                   standPlatform.Size = Vector3.new(4, 0.5, 4)
+                   standPlatform.Transparency = 0.5
+                   standPlatform.Color = Color3.fromRGB(0, 255, 255)
+                   standPlatform.Material = Enum.Material.ForceField
+                   standPlatform.Anchored = true
+                   standPlatform.CanCollide = true
+                   standPlatform.Name = "StandPlatform"
+                   standPlatform.Parent = workspace
+                end
+                
+                local bob = math.sin(tick() * 2) * 0.8
+                local goalCF = tRoot.CFrame * CFrame.new(2, 3 + bob, 2)
+                
+                if standPlatform then
+                    standPlatform.CFrame = goalCF * CFrame.new(0, -3, 0)
+                end
+                
+                cRoot.CFrame = cRoot.CFrame:Lerp(goalCF, 0.15)
+                cRoot.Velocity = Vector3.zero
+                
+                for n, d in pairs(jojoPose) do
+                    local p, m = getRealParts(char, n)
+                    if m then
+                        if not m:GetAttribute("OrigC0") then m:SetAttribute("OrigC0", m.C0) end
+                        local base = m:GetAttribute("OrigC0")
+                        local rot = CFrame.Angles(math.rad(d.rx), math.rad(d.ry), math.rad(d.rz))
+                        m.C0 = base * rot
+                    end
+                end
+            else
+                -- Is Busy, cleanup temp parts
+                if standPlatform then standPlatform.CFrame = CFrame.new(0, -500, 0) end
+            end
+        end
+    else
+        -- Cleanup if connection lost
+        if standPlatform then standPlatform:Destroy() standPlatform = nil end
+    end
+end)
+
+local function executeCommand(cmd, args)
+    if cmd == ".jump" then
+        if LocalPlayer.Character then LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end
+    elseif cmd == ".bring" then
+        isBusy = true
+        if LocalPlayer.Character and controllerPlayer and controllerPlayer.Character then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = controllerPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,3)
+        end
+        task.wait(0.5)
+        isBusy = false
+    elseif cmd == ".spin" then
+        spinEnabled = not spinEnabled
+    elseif cmd == ".kill" then
+        isBusy = true
+        LocalPlayer.Character:BreakJoints()
+        task.wait(1)
+        isBusy = false
+    elseif cmd == ".void" then
+        isBusy = true
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, -500, 0)
+        task.wait(1)
+        isBusy = false
+    elseif cmd == ".fly" then
+        flySettings.flying = true
+        initFly()
+    elseif cmd == ".unfly" then
+        flySettings.flying = false
+    elseif cmd == ".noclip" then
+        noclip = true
+    elseif cmd == ".clip" then
+        noclip = false
+    elseif cmd == ".jumpscare" then
+        triggerJumpscare()
+    elseif cmd == ".fling" then
+        isBusy = true
+        hiddenfling = true
+        task.wait(2)
+        hiddenfling = false
+        isBusy = false
+    elseif cmd == ".flingplayer" and args then
+        targetFlingRoutine(args)
+    end
+end
+
+local function sendCmd(cmd)
+    game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(cmd, "All")
+end
+
+local function listenForController()
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            p.Chatted:Connect(function(msg)
+                if string.sub(msg, 1, 9) == "!v_cntrl" and not controllerPlayer then
+                    controllerPlayer = p
+                    updateStatus("SLAVE (Controlled by " .. p.Name .. ")", Color3.fromRGB(255, 50, 50))
+                    Notify("Dominance", p.Name .. " is now controlling you! Auto-Stand Active.", 5)
+                end
+                
+                if controllerPlayer == p then
+                    local args = string.split(string.lower(msg), " ")
+                    executeCommand(args[1], args[2])
+                end
+            end)
+        end
+    end
+    Players.PlayerAdded:Connect(function(p)
+        p.Chatted:Connect(function(msg)
+            if string.sub(msg, 1, 9) == "!v_cntrl" and not controllerPlayer then
+                controllerPlayer = p
+                updateStatus("SLAVE (Controlled by " .. p.Name .. ")", Color3.fromRGB(255, 50, 50))
+                Notify("Dominance", p.Name .. " is now controlling you! Auto-Stand Active.", 5)
+            end
+            if controllerPlayer == p then
+                local args = string.split(string.lower(msg), " ")
+                executeCommand(args[1], args[2])
+            end
+        end)
+    end)
+end
+
+listenForController()
 
 local MainTab = Window:CreateTab("Main", 4483362458)
 
@@ -468,39 +612,45 @@ MainTab:CreateToggle({
    end,
 })
 
-local SectionTargets = MainTab:CreateSection("Player Targeting")
+local SectionConnect = MainTab:CreateSection("Connection (First to type controls)")
 
-local selectedPlayer = nil
-local PlayerDropdown
+local connectInputName = ""
+
+MainTab:CreateInput({
+   Name = "Target Player Name",
+   PlaceholderText = "Type Name (First to click controls)",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+       connectInputName = Text
+   end,
+})
 
 MainTab:CreateButton({
-   Name = "Refresh Player List",
+   Name = "Connect & Dominate",
    Callback = function()
-       if PlayerDropdown then
-           PlayerDropdown:Refresh(getPlayerNames())
+       local t = findPlayerPartial(connectInputName)
+       if t then
+           connectedTarget = t
+           controllerPlayer = nil 
+           sendCmd("!v_cntrl")
+           updateStatus("MASTER (Controlling " .. t.Name .. ")", Color3.fromRGB(50, 255, 50))
+           Notify("Success", "Sent control signal to " .. t.Name, 3)
+       else
+           Notify("Error", "Player not found", 3)
        end
    end,
 })
 
-PlayerDropdown = MainTab:CreateDropdown({
-   Name = "Select Target",
-   Options = getPlayerNames(),
-   CurrentOption = {""},
-   MultipleOptions = false,
-   Flag = "TargetDropdown",
-   Callback = function(Option)
-       selectedPlayer = Players:FindFirstChild(Option[1])
-   end,
-})
+local SectionTargets = MainTab:CreateSection("Target Actions")
 
 MainTab:CreateToggle({
    Name = "Spectate Target",
    CurrentValue = false,
    Flag = "SpectateToggle",
    Callback = function(Value)
-       if Value and selectedPlayer then
-           if selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("Humanoid") then
-               Camera.CameraSubject = selectedPlayer.Character.Humanoid
+       if Value and connectedTarget then
+           if connectedTarget.Character and connectedTarget.Character:FindFirstChild("Humanoid") then
+               Camera.CameraSubject = connectedTarget.Character.Humanoid
            end
        else
            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
@@ -511,195 +661,16 @@ MainTab:CreateToggle({
 })
 
 MainTab:CreateButton({
-   Name = "Teleport To Target (Touching)",
+   Name = "Teleport To Target",
    Callback = function()
-       if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-           LocalPlayer.Character.HumanoidRootPart.CFrame = selectedPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 1)
-       else
-           Notify("Error", "Target or LocalPlayer invalid", 2)
-       end
-   end,
-})
-
-MainTab:CreateButton({
-   Name = "Fling Target (Once)",
-   Callback = function()
-       if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-           local lpRoot = LocalPlayer.Character.HumanoidRootPart
-           local targetRoot = selectedPlayer.Character.HumanoidRootPart
-           local savedPos = lpRoot.CFrame
-           
-           Notify("Fling", "Flinging " .. selectedPlayer.Name .. "...", 2)
-           
-           local wasFlingEnabled = hiddenfling
-           hiddenfling = true 
-           
-           local flingTime = 1.5
-           local startTime = tick()
-           
-           local connection
-           connection = RunService.RenderStepped:Connect(function()
-               if tick() - startTime > flingTime then
-                   connection:Disconnect()
-                   hiddenfling = wasFlingEnabled
-                   lpRoot.Velocity = Vector3.zero
-                   lpRoot.RotVelocity = Vector3.zero
-                   lpRoot.CFrame = savedPos
-                   return
-               end
-               if targetRoot and targetRoot.Parent and lpRoot and lpRoot.Parent then
-                   lpRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 0.5)
-               end
-           end)
-       else
-           Notify("Error", "Select a valid target first.", 2)
-       end
-   end,
-})
-
-local SectionConnect = MainTab:CreateSection("Connection (JoJo Stand)")
-
-MainTab:CreateButton({
-   Name = "Get My ID (Code)",
-   Callback = function()
-       if setclipboard then
-           setclipboard(tostring(LocalPlayer.UserId))
-           Notify("Code Copied", tostring(LocalPlayer.UserId), 5)
-       end
-   end,
-})
-
-MainTab:CreateInput({
-   Name = "Enter Friend's ID",
-   PlaceholderText = "Paste ID here",
-   RemoveTextAfterFocusLost = false,
-   Callback = function(Text)
-       local id = tonumber(Text)
-       if id then
-           for _, p in pairs(Players:GetPlayers()) do
-               if p.UserId == id then
-                   connectedTarget = p
-                   Notify("Connected", "Linked to: " .. p.Name, 3)
-                   setupCommandListener(p)
-                   return
-               end
-           end
-           Notify("Error", "Player not found in server.", 3)
-       end
-   end,
-})
-
-MainTab:CreateToggle({
-   Name = "Allow Control (They can control you)",
-   CurrentValue = false,
-   Flag = "ControlToggle",
-   Callback = function(Value)
-       allowControl = Value
-       if Value then
-           Notify("Risk", "Connected player controls you now!", 5)
-           if connectedTarget then setupCommandListener(connectedTarget) end
-       end
-   end,
-})
-
-local jojoPose = {
-    ["Torso"] = {rx=10, ry=0, rz=0},
-    ["Head"] = {rx=-10, ry=0, rz=0},
-    ["Left Arm"] = {rx=30, rz=-45, ry=20},
-    ["Right Arm"] = {rx=90, rz=0, ry=0},
-    ["Left Leg"] = {rx=20, rz=-5},
-    ["Right Leg"] = {rx=10, rz=5}
-}
-
-MainTab:CreateToggle({
-   Name = "Become Stand (Float + Pose)",
-   CurrentValue = false,
-   Flag = "StandToggle",
-   Callback = function(Value)
-       standMode = Value
-       if standMode then
-           if not connectedTarget then
-               Notify("Error", "No connection! Enter a code first.", 3)
-               return
-           end
-           
-           if standPlatform then standPlatform:Destroy() end
-           standPlatform = Instance.new("Part")
-           standPlatform.Size = Vector3.new(4, 0.5, 4)
-           standPlatform.Transparency = 0.5
-           standPlatform.Color = Color3.fromRGB(0, 255, 255)
-           standPlatform.Material = Enum.Material.ForceField
-           standPlatform.Anchored = true
-           standPlatform.CanCollide = true
-           standPlatform.Name = "StandPlatform"
-           standPlatform.Parent = workspace
-           
-           if standConnection then standConnection:Disconnect() end
-           
-           standConnection = RunService.Heartbeat:Connect(function()
-               local char = LocalPlayer.Character
-               local targetChar = connectedTarget.Character
-               
-               if char and targetChar and char:FindFirstChild("HumanoidRootPart") and targetChar:FindFirstChild("HumanoidRootPart") then
-                   local tRoot = targetChar.HumanoidRootPart
-                   local cRoot = char.HumanoidRootPart
-                   local hum = char:FindFirstChild("Humanoid")
-                   
-                   if hum then
-                       hum:ChangeState(Enum.HumanoidStateType.Physics)
-                   end
-                   
-                   local bob = math.sin(tick() * 2) * 0.8
-                   local goalCF = tRoot.CFrame * CFrame.new(2, 3 + bob, 2)
-                   
-                   if standPlatform then
-                       standPlatform.CFrame = goalCF * CFrame.new(0, -3, 0)
-                   end
-                   
-                   cRoot.CFrame = cRoot.CFrame:Lerp(goalCF, 0.15)
-                   cRoot.Velocity = Vector3.zero
-                   
-                   for n, d in pairs(jojoPose) do
-                       local p, m = getRealParts(char, n)
-                       if m then
-                           if not m:GetAttribute("OrigC0") then m:SetAttribute("OrigC0", m.C0) end
-                           local base = m:GetAttribute("OrigC0")
-                           local rot = CFrame.Angles(math.rad(d.rx), math.rad(d.ry), math.rad(d.rz))
-                           m.C0 = base * rot
-                       end
-                   end
-               end
-           end)
-       else
-           if standConnection then
-               standConnection:Disconnect()
-               standConnection = nil
-           end
-           if standPlatform then
-               standPlatform:Destroy()
-               standPlatform = nil
-           end
-           
-           if LocalPlayer.Character then
-                local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
-                if hum then hum:ChangeState(Enum.HumanoidStateType.GettingUp) end
-                for n, d in pairs(jojoPose) do
-                   local p, m = getRealParts(LocalPlayer.Character, n)
-                   if m and m:GetAttribute("OrigC0") then
-                       m.C0 = m:GetAttribute("OrigC0")
-                   end
-                end
-           end
+       if connectedTarget and connectedTarget.Character and connectedTarget.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character then
+           LocalPlayer.Character.HumanoidRootPart.CFrame = connectedTarget.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 1)
        end
    end,
 })
 
 local RemoteTab = Window:CreateTab("Remote Admin", 4483362458)
 local RemoteSection = RemoteTab:CreateSection("Control Connected Partner")
-
-local function sendCmd(cmd)
-    game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(cmd, "All")
-end
 
 RemoteTab:CreateButton({
    Name = "Jumpscare Him",
