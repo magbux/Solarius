@@ -1,0 +1,1007 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local VirtualUser = game:GetService("VirtualUser")
+local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local hiddenfling = false
+local flingPower = 10000
+
+if not ReplicatedStorage:FindFirstChild("juisdfj0i32i0eidsuf0iok") then
+	local detection = Instance.new("Decal")
+	detection.Name = "juisdfj0i32i0eidsuf0iok"
+	detection.Parent = ReplicatedStorage
+end
+
+local function fling()
+	local hrp, c, vel, movel = nil, nil, nil, 0.1
+	while true do
+		RunService.Heartbeat:Wait()
+		if hiddenfling then
+			while hiddenfling and not (c and c.Parent and hrp and hrp.Parent) do
+				RunService.Heartbeat:Wait()
+				c = LocalPlayer.Character
+				hrp = c and c:FindFirstChild("HumanoidRootPart")
+			end
+			if hiddenfling then
+				vel = hrp.Velocity
+				hrp.Velocity = vel * flingPower + Vector3.new(0, flingPower, 0)
+				RunService.RenderStepped:Wait()
+				if c and c.Parent and hrp and hrp.Parent then
+					hrp.Velocity = vel
+				end
+				RunService.Stepped:Wait()
+				if c and c.Parent and hrp and hrp.Parent then
+					hrp.Velocity = vel + Vector3.new(0, movel, 0)
+					movel = movel * -1
+				end
+			end
+		end
+	end
+end
+
+task.spawn(fling)
+
+local Visualizer
+local invis_enabled = true
+local invis_on = false
+local current_method = 1
+local invis_transparency = 0.5
+local method1_speed = 1
+local voidLevelYThreshold = -500
+local seatTeleportPosition = Vector3.new(0, 5000, 0)
+local currentSeatPosition = nil
+local seatHeartbeat
+
+local flySettings = {flying = false, speed = 50}
+local noclip = false
+local espEnabled = false
+local infJump = false
+local spinEnabled = false
+local spinSpeed = 20
+local spinBody
+
+local connectedTarget = nil
+local standMode = false
+local standConnection = nil
+local sessionCode = nil
+
+local savedScripts = {}
+local scriptFileName = "Solarius_SavedScripts.json"
+
+if isfile and isfile(scriptFileName) then
+    local decoded = HttpService:JSONDecode(readfile(scriptFileName))
+    if decoded then savedScripts = decoded end
+end
+
+local function saveScripts()
+    if writefile then
+        writefile(scriptFileName, HttpService:JSONEncode(savedScripts))
+    end
+end
+
+local function getScriptNames()
+    local names = {}
+    for n, _ in pairs(savedScripts) do
+        table.insert(names, n)
+    end
+    return names
+end
+
+local function getPlayerNames()
+    local names = {}
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            table.insert(names, p.Name)
+        end
+    end
+    return names
+end
+
+local function getRealParts(char, partName)
+    local r15 = char:FindFirstChild("UpperTorso")
+    local p, m
+    if r15 then
+        if partName == "Head" then p=char:FindFirstChild("Head") m=p and p:FindFirstChild("Neck") end
+        if partName == "Torso" then p=char:FindFirstChild("UpperTorso") m=char:FindFirstChild("LowerTorso") and char.LowerTorso:FindFirstChild("Root") end
+        if partName == "Left Arm" then p=char:FindFirstChild("LeftUpperArm") m=p and p:FindFirstChild("LeftShoulder") end
+        if partName == "Right Arm" then p=char:FindFirstChild("RightUpperArm") m=p and p:FindFirstChild("RightShoulder") end
+        if partName == "Left Leg" then p=char:FindFirstChild("LeftUpperLeg") m=p and p:FindFirstChild("LeftHip") end
+        if partName == "Right Leg" then p=char:FindFirstChild("RightUpperLeg") m=p and p:FindFirstChild("RightHip") end
+    else
+        if partName == "Head" then p=char:FindFirstChild("Head") m=char:FindFirstChild("Torso") and char.Torso:FindFirstChild("Neck") end
+        if partName == "Torso" then p=char:FindFirstChild("Torso") m=char:FindFirstChild("HumanoidRootPart") and char.HumanoidRootPart:FindFirstChild("RootJoint") end
+        if partName == "Left Arm" then p=char:FindFirstChild("Left Arm") m=char:FindFirstChild("Torso") and char.Torso:FindFirstChild("Left Shoulder") end
+        if partName == "Right Arm" then p=char:FindFirstChild("Right Arm") m=char:FindFirstChild("Torso") and char.Torso:FindFirstChild("Right Shoulder") end
+        if partName == "Left Leg" then p=char:FindFirstChild("Left Leg") m=char:FindFirstChild("Torso") and char.Torso:FindFirstChild("Left Hip") end
+        if partName == "Right Leg" then p=char:FindFirstChild("Right Leg") m=char:FindFirstChild("Torso") and char.Torso:FindFirstChild("Right Hip") end
+    end
+    return p, m
+end
+
+local function findPlayerPartial(text)
+    for _, p in pairs(Players:GetPlayers()) do
+        if string.find(string.lower(p.Name), string.lower(text)) or string.find(string.lower(p.DisplayName), string.lower(text)) then
+            return p
+        end
+    end
+    return nil
+end
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "Solarius",
+   Icon = 0,
+   LoadingTitle = "in case i dont see ya good afternoon good morning and good night!",
+   LoadingSubtitle = "by brianz109",
+   Theme = "Ocean",
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = false,
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = nil,
+      FileName = "Big Hub"
+   },
+   Discord = {
+      Enabled = false,
+      Invite = "noinvitelink",
+      RememberJoins = true
+   },
+   KeySystem = true,
+   KeySettings = {
+      Title = "Untitled",
+      Subtitle = "Key System",
+      Note = "its brainz109",
+      FileName = "Key",
+      SaveKey = true,
+      GrabKeyFromSite = false,
+      Key = {"brianz109"}
+   }
+})
+
+local function Notify(title, content, duration)
+    Rayfield:Notify({
+        Title = title,
+        Content = content,
+        Duration = duration or 3,
+        Image = 4483362458,
+    })
+end
+
+local function setCharacterTransparency(transparency)
+    if LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                part.Transparency = transparency
+            end
+        end
+    end
+end
+
+local function startSeatReturnHeartbeat()
+    if seatHeartbeat then seatHeartbeat:Disconnect() end
+    seatHeartbeat = RunService.Heartbeat:Connect(function()
+        local seat = workspace:FindFirstChild('invischair')
+        if seat and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+             
+        end
+    end)
+end
+
+local function stopSeatReturnHeartbeat()
+    if seatHeartbeat then
+        seatHeartbeat:Disconnect()
+        seatHeartbeat = nil
+    end
+end
+
+local function toggleInvisibility()
+    if not invis_enabled then return end
+    invis_on = not invis_on
+    
+    if invis_on then
+        if current_method == 1 then
+            setCharacterTransparency(invis_transparency)
+            Notify("Invis", "Enabling invisibility...", 1)
+            local character = LocalPlayer.Character
+            if character then
+                local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                if humanoidRootPart then
+                    local savedpos = humanoidRootPart.CFrame
+                    task.wait(0.1)
+                    pcall(function() character:MoveTo(seatTeleportPosition) end)
+                    task.wait(0.1)
+                    
+                    if not character:FindFirstChild("HumanoidRootPart") or character.HumanoidRootPart.Position.Y < voidLevelYThreshold then
+                        pcall(function() character:MoveTo(savedpos) end)
+                        invis_on = false
+                        setCharacterTransparency(0)
+                        return
+                    end
+                    
+                    local Seat = Instance.new('Seat')
+                    Seat.Parent = workspace
+                    Seat.Anchored = false
+                    Seat.CanCollide = false
+                    Seat.Name = 'invischair'
+                    Seat.Transparency = 1
+                    Seat.Position = seatTeleportPosition
+                    
+                    local Weld = Instance.new("Weld")
+                    Weld.Part0 = Seat
+                    local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
+                    
+                    if torso then
+                        Weld.Part1 = torso
+                        Weld.Parent = Seat
+                        task.wait()
+                        pcall(function() Seat.CFrame = savedpos end)
+                        currentSeatPosition = Seat.Position
+                        startSeatReturnHeartbeat()
+                        Notify("Invis Enabled", "Method: Seat", 1)
+                    else
+                        Seat:Destroy()
+                        stopSeatReturnHeartbeat()
+                    end
+                end
+            end
+        end
+    else
+        setCharacterTransparency(0)
+        Notify("Invis Disabled", "Visible", 1)
+        task.spawn(function()
+            local inv = workspace:FindFirstChild('invischair')
+            if inv then pcall(function() inv:Destroy() end) end
+        end)
+        stopSeatReturnHeartbeat()
+        currentSeatPosition = nil
+    end
+end
+
+RunService.Stepped:Connect(function()
+    if noclip and LocalPlayer.Character then
+        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = false
+            end
+        end
+    end
+end)
+
+UserInputService.JumpRequest:Connect(function()
+    if infJump and LocalPlayer.Character then
+        LocalPlayer.Character:FindFirstChildOfClass('Humanoid'):ChangeState("Jumping")
+    end
+end)
+
+local function updateESP()
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            if espEnabled then
+                if not p.Character:FindFirstChild("HighlightESP") then
+                    local h = Instance.new("Highlight")
+                    h.Name = "HighlightESP"
+                    h.FillColor = Color3.fromRGB(255, 0, 0)
+                    h.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    h.FillTransparency = 0.5
+                    h.Parent = p.Character
+                end
+            else
+                if p.Character:FindFirstChild("HighlightESP") then
+                    p.Character.HighlightESP:Destroy()
+                end
+            end
+        end
+    end
+end
+
+RunService.Heartbeat:Connect(function()
+    if espEnabled then updateESP() end
+    
+    if spinEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local root = LocalPlayer.Character.HumanoidRootPart
+        if not spinBody or spinBody.Parent ~= root then
+            spinBody = Instance.new("BodyAngularVelocity")
+            spinBody.MaxTorque = Vector3.new(0, math.huge, 0)
+            spinBody.Parent = root
+        end
+        spinBody.AngularVelocity = Vector3.new(0, spinSpeed, 0)
+    elseif spinBody then
+        spinBody:Destroy()
+        spinBody = nil
+    end
+end)
+
+local MainTab = Window:CreateTab("Main", 4483362458)
+
+local SectionDesync = MainTab:CreateSection("Fling & Invis")
+
+MainTab:CreateToggle({
+   Name = "Enable Fling",
+   CurrentValue = false,
+   Flag = "FlingToggle",
+   Callback = function(Value)
+      hiddenfling = Value
+   end,
+})
+
+MainTab:CreateSlider({
+   Name = "Fling Power",
+   Range = {1000, 50000},
+   Increment = 1000,
+   Suffix = "Power",
+   CurrentValue = 10000,
+   Flag = "FlingPower",
+   Callback = function(Value)
+      flingPower = Value
+   end,
+})
+
+MainTab:CreateToggle({
+   Name = "Seat Invisibility",
+   CurrentValue = false,
+   Flag = "InvisToggle",
+   Callback = function(Value)
+      if Value ~= invis_on then
+         toggleInvisibility()
+      end
+   end,
+})
+
+local SectionTargets = MainTab:CreateSection("Player Targeting")
+
+local selectedPlayer = nil
+local PlayerDropdown
+
+MainTab:CreateButton({
+   Name = "Refresh Player List",
+   Callback = function()
+       if PlayerDropdown then
+           PlayerDropdown:Refresh(getPlayerNames())
+       end
+   end,
+})
+
+PlayerDropdown = MainTab:CreateDropdown({
+   Name = "Select Target",
+   Options = getPlayerNames(),
+   CurrentOption = {""},
+   MultipleOptions = false,
+   Flag = "TargetDropdown",
+   Callback = function(Option)
+       selectedPlayer = Players:FindFirstChild(Option[1])
+   end,
+})
+
+MainTab:CreateToggle({
+   Name = "Spectate Target",
+   CurrentValue = false,
+   Flag = "SpectateToggle",
+   Callback = function(Value)
+       if Value and selectedPlayer then
+           if selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("Humanoid") then
+               Camera.CameraSubject = selectedPlayer.Character.Humanoid
+           end
+       else
+           if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+               Camera.CameraSubject = LocalPlayer.Character.Humanoid
+           end
+       end
+   end,
+})
+
+MainTab:CreateButton({
+   Name = "Teleport To Target (Touching)",
+   Callback = function()
+       if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+           LocalPlayer.Character.HumanoidRootPart.CFrame = selectedPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 1)
+       else
+           Notify("Error", "Target or LocalPlayer invalid", 2)
+       end
+   end,
+})
+
+MainTab:CreateButton({
+   Name = "Fling Target (Once)",
+   Callback = function()
+       if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+           local lpRoot = LocalPlayer.Character.HumanoidRootPart
+           local targetRoot = selectedPlayer.Character.HumanoidRootPart
+           local savedPos = lpRoot.CFrame
+           
+           Notify("Fling", "Flinging " .. selectedPlayer.Name .. "...", 2)
+           
+           local wasFlingEnabled = hiddenfling
+           hiddenfling = true 
+           
+           local flingTime = 1.5
+           local startTime = tick()
+           
+           local connection
+           connection = RunService.RenderStepped:Connect(function()
+               if tick() - startTime > flingTime then
+                   connection:Disconnect()
+                   hiddenfling = wasFlingEnabled
+                   
+                   lpRoot.Velocity = Vector3.zero
+                   lpRoot.RotVelocity = Vector3.zero
+                   lpRoot.CFrame = savedPos
+                   return
+               end
+               
+               if targetRoot and targetRoot.Parent and lpRoot and lpRoot.Parent then
+                   lpRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 0.5)
+               end
+           end)
+       else
+           Notify("Error", "Select a valid target first.", 2)
+       end
+   end,
+})
+
+local SectionConnect = MainTab:CreateSection("Connection (JoJo Stand)")
+
+MainTab:CreateButton({
+   Name = "Generate Random Code",
+   Callback = function()
+       sessionCode = math.random(1000, 9999)
+       if LocalPlayer.Character then
+           LocalPlayer.Character:SetAttribute("SolariusCode", sessionCode)
+       end
+       
+       if setclipboard then
+           setclipboard(tostring(sessionCode))
+           Notify("Code Generated", tostring(sessionCode) .. " (Copied)", 5)
+       else
+           Notify("Code Generated", tostring(sessionCode) .. " (Type this on other acc)", 10)
+       end
+   end,
+})
+
+MainTab:CreateInput({
+   Name = "Connect via Random Code",
+   PlaceholderText = "Enter 4-digit code",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+       local inputCode = tonumber(Text)
+       if inputCode then
+           local found = false
+           for _, p in pairs(Players:GetPlayers()) do
+               if p ~= LocalPlayer and p.Character and p.Character:GetAttribute("SolariusCode") == inputCode then
+                   connectedTarget = p
+                   found = true
+                   Notify("Success", "Connected to " .. p.Name, 3)
+                   break
+               end
+           end
+           if not found then
+               Notify("Failed", "No player found with that code.", 3)
+           end
+       end
+   end,
+})
+
+MainTab:CreateInput({
+   Name = "Connect via User ID (Backup)",
+   PlaceholderText = "Paste User ID",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+       local id = tonumber(Text)
+       if id then
+           for _, p in pairs(Players:GetPlayers()) do
+               if p.UserId == id then
+                   connectedTarget = p
+                   Notify("Connected", "Target locked: " .. p.Name, 3)
+                   return
+               end
+           end
+           Notify("Error", "Player not found in server.", 3)
+       end
+   end,
+})
+
+local jojoPose = {
+    ["Torso"] = {rx=0, ry=20, rz=0},
+    ["Left Arm"] = {rx=120, rz=-20, ry=20},
+    ["Right Arm"] = {rx=30, rz=20, ry=20},
+    ["Left Leg"] = {rx=20, rz=-10},
+    ["Right Leg"] = {rx=-10, rz=10}
+}
+
+MainTab:CreateToggle({
+   Name = "Become Stand (Float + Pose)",
+   CurrentValue = false,
+   Flag = "StandToggle",
+   Callback = function(Value)
+       standMode = Value
+       if standMode then
+           if not connectedTarget then
+               Notify("Error", "No connection! Enter a code first.", 3)
+               return
+           end
+           
+           if standConnection then standConnection:Disconnect() end
+           
+           standConnection = RunService.Heartbeat:Connect(function()
+               local char = LocalPlayer.Character
+               local targetChar = connectedTarget.Character
+               
+               if char and targetChar and char:FindFirstChild("HumanoidRootPart") and targetChar:FindFirstChild("HumanoidRootPart") then
+                   local tRoot = targetChar.HumanoidRootPart
+                   char.HumanoidRootPart.CFrame = tRoot.CFrame * CFrame.new(2, 3, 2)
+                   char.HumanoidRootPart.Velocity = Vector3.zero
+                   
+                   for n, d in pairs(jojoPose) do
+                       local p, m = getRealParts(char, n)
+                       if m then
+                           if not m:GetAttribute("OrigC0") then m:SetAttribute("OrigC0", m.C0) end
+                           local base = m:GetAttribute("OrigC0")
+                           local rot = CFrame.Angles(math.rad(d.rx), math.rad(d.ry), math.rad(d.rz))
+                           m.C0 = base * rot
+                       end
+                   end
+               end
+           end)
+       else
+           if standConnection then
+               standConnection:Disconnect()
+               standConnection = nil
+           end
+           
+           if LocalPlayer.Character then
+                for n, d in pairs(jojoPose) do
+                   local p, m = getRealParts(LocalPlayer.Character, n)
+                   if m and m:GetAttribute("OrigC0") then
+                       m.C0 = m:GetAttribute("OrigC0")
+                   end
+                end
+           end
+       end
+   end,
+})
+
+local SectionIdentity = MainTab:CreateSection("Identity")
+
+MainTab:CreateInput({
+   Name = "Fake Username (Local & Overhead)",
+   PlaceholderText = "Enter Name",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      if LocalPlayer.Character then
+         local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
+         if hum then hum.DisplayName = Text end
+         
+         for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+             if v:IsA("TextLabel") or v:IsA("TextButton") or v:IsA("BillboardGui") then
+                 if v:IsA("TextLabel") or v:IsA("TextButton") then
+                     if string.find(v.Text, LocalPlayer.Name) or string.find(v.Text, LocalPlayer.DisplayName) then
+                         v.Text = Text
+                     end
+                 end
+             end
+         end
+      end
+   end,
+})
+
+local InfoTab = Window:CreateTab("Player Info", 4483362458)
+local InfoSection = InfoTab:CreateSection("Get Player Details")
+
+local infoTargetName = ""
+
+InfoTab:CreateInput({
+   Name = "Player Name",
+   PlaceholderText = "e.g., brian",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      infoTargetName = Text
+   end,
+})
+
+InfoTab:CreateButton({
+   Name = "Get Info",
+   Callback = function()
+       local target = findPlayerPartial(infoTargetName)
+       if target then
+           local char = target.Character
+           local health = "N/A"
+           local maxHealth = "N/A"
+           local team = target.Team and target.Team.Name or "Neutral"
+           local tool = "None"
+           local pos = "N/A"
+           
+           if char then
+               local hum = char:FindFirstChild("Humanoid")
+               if hum then
+                   health = math.floor(hum.Health)
+                   maxHealth = math.floor(hum.MaxHealth)
+               end
+               
+               local equip = char:FindFirstChildOfClass("Tool")
+               if equip then tool = equip.Name end
+               
+               local hrp = char:FindFirstChild("HumanoidRootPart")
+               if hrp then
+                   pos = math.floor(hrp.Position.X) .. ", " .. math.floor(hrp.Position.Y) .. ", " .. math.floor(hrp.Position.Z)
+               end
+           end
+           
+           local age = target.AccountAge
+           
+           Notify("Info: " .. target.Name, 
+               "HP: " .. health .. "/" .. maxHealth .. 
+               "\nTeam: " .. team .. 
+               "\nTool: " .. tool ..
+               "\nAge: " .. age .. " days" ..
+               "\nPos: " .. pos, 10)
+       else
+           Notify("Error", "Player not found", 3)
+       end
+   end,
+})
+
+local SectionMovement = MainTab:CreateSection("Movement")
+
+MainTab:CreateToggle({
+   Name = "Fly",
+   CurrentValue = false,
+   Flag = "FlyToggle",
+   Callback = function(Value)
+      flySettings.flying = Value
+      if flySettings.flying then
+         task.spawn(function()
+            local bv = Instance.new("BodyVelocity")
+            bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+            bv.Velocity = Vector3.zero
+            
+            local bg = Instance.new("BodyGyro")
+            bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+            bg.P = 9e4
+            
+            while flySettings.flying and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") do
+               local hrp = LocalPlayer.Character.HumanoidRootPart
+               if not hrp:FindFirstChild("BodyVelocity") then
+                  bv.Parent = hrp
+                  bg.Parent = hrp
+               end
+               
+               bv.Velocity = Vector3.zero
+               local camCF = Camera.CFrame
+               
+               if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                  bv.Velocity = bv.Velocity + camCF.LookVector * flySettings.speed
+               end
+               if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                  bv.Velocity = bv.Velocity - camCF.LookVector * flySettings.speed
+               end
+               if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                  bv.Velocity = bv.Velocity - camCF.RightVector * flySettings.speed
+               end
+               if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                  bv.Velocity = bv.Velocity + camCF.RightVector * flySettings.speed
+               end
+               if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                  bv.Velocity = bv.Velocity + Vector3.new(0, flySettings.speed, 0)
+               end
+               if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+                  bv.Velocity = bv.Velocity - Vector3.new(0, flySettings.speed, 0)
+               end
+               
+               bg.CFrame = camCF
+               RunService.RenderStepped:Wait()
+            end
+            
+            bv:Destroy()
+            bg:Destroy()
+         end)
+      end
+   end,
+})
+
+MainTab:CreateSlider({
+   Name = "Fly Speed",
+   Range = {10, 500},
+   Increment = 10,
+   Suffix = "Studs",
+   CurrentValue = 50,
+   Flag = "FlySpeed",
+   Callback = function(Value)
+      flySettings.speed = Value
+   end,
+})
+
+MainTab:CreateToggle({
+   Name = "Noclip",
+   CurrentValue = false,
+   Flag = "NoclipToggle",
+   Callback = function(Value)
+      noclip = Value
+   end,
+})
+
+MainTab:CreateToggle({
+   Name = "Infinite Jump",
+   CurrentValue = false,
+   Flag = "InfJumpToggle",
+   Callback = function(Value)
+      infJump = Value
+   end,
+})
+
+MainTab:CreateSlider({
+   Name = "WalkSpeed",
+   Range = {16, 300},
+   Increment = 1,
+   Suffix = "Speed",
+   CurrentValue = 16,
+   Flag = "WalkSpeed",
+   Callback = function(Value)
+      if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+         LocalPlayer.Character.Humanoid.WalkSpeed = Value
+      end
+   end,
+})
+
+MainTab:CreateSlider({
+   Name = "JumpPower",
+   Range = {50, 500},
+   Increment = 1,
+   Suffix = "Power",
+   CurrentValue = 50,
+   Flag = "JumpPower",
+   Callback = function(Value)
+      if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+         LocalPlayer.Character.Humanoid.UseJumpPower = true
+         LocalPlayer.Character.Humanoid.JumpPower = Value
+      end
+   end,
+})
+
+local SectionCombat = MainTab:CreateSection("Utility & Trolling")
+
+MainTab:CreateToggle({
+   Name = "SpinBot",
+   CurrentValue = false,
+   Flag = "SpinToggle",
+   Callback = function(Value)
+      spinEnabled = Value
+   end,
+})
+
+MainTab:CreateSlider({
+   Name = "Spin Speed",
+   Range = {10, 100},
+   Increment = 5,
+   Suffix = "RPM",
+   CurrentValue = 20,
+   Flag = "SpinSpeed",
+   Callback = function(Value)
+      spinSpeed = Value
+   end,
+})
+
+MainTab:CreateButton({
+   Name = "Click TP Tool",
+   Callback = function()
+       local tool = Instance.new("Tool")
+       tool.RequiresHandle = false
+       tool.Name = "Click TP"
+       tool.Activated:Connect(function()
+           local pos = UserInputService:GetMouseLocation()
+           local ray = Camera:ViewportPointToRay(pos.X, pos.Y)
+           local res = workspace:Raycast(ray.Origin, ray.Direction * 1000)
+           if res and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+               LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(res.Position + Vector3.new(0, 3, 0))
+           end
+       end)
+       tool.Parent = LocalPlayer.Backpack
+       Notify("Tool", "Click TP added to Backpack", 2)
+   end,
+})
+
+MainTab:CreateToggle({
+   Name = "Anti-AFK",
+   CurrentValue = false,
+   Flag = "AntiAFK",
+   Callback = function(Value)
+      if Value then
+          LocalPlayer.Idled:Connect(function()
+             VirtualUser:CaptureController()
+             VirtualUser:ClickButton2(Vector2.new())
+          end)
+      end
+   end,
+})
+
+local SectionVisuals = MainTab:CreateSection("Visuals")
+
+MainTab:CreateSlider({
+   Name = "Field of View",
+   Range = {70, 120},
+   Increment = 1,
+   Suffix = "FOV",
+   CurrentValue = 70,
+   Flag = "FOV",
+   Callback = function(Value)
+      Camera.FieldOfView = Value
+   end,
+})
+
+MainTab:CreateToggle({
+   Name = "ESP (Player Highlight)",
+   CurrentValue = false,
+   Flag = "ESPToggle",
+   Callback = function(Value)
+      espEnabled = Value
+      if not Value then
+          updateESP()
+      end
+   end,
+})
+
+MainTab:CreateToggle({
+   Name = "Fullbright",
+   CurrentValue = false,
+   Flag = "FullbrightToggle",
+   Callback = function(Value)
+      if Value then
+         game:GetService("Lighting").Brightness = 2
+         game:GetService("Lighting").ClockTime = 14
+         game:GetService("Lighting").FogEnd = 100000
+         game:GetService("Lighting").GlobalShadows = false
+         game:GetService("Lighting").OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+      else
+         game:GetService("Lighting").Brightness = 1
+         game:GetService("Lighting").ClockTime = 12
+         game:GetService("Lighting").FogEnd = 10000
+         game:GetService("Lighting").GlobalShadows = true
+         game:GetService("Lighting").OutdoorAmbient = Color3.fromRGB(127, 127, 127)
+      end
+   end,
+})
+
+local ScriptHubTab = Window:CreateTab("Script Hub", 4483362458)
+local SectionTemp = ScriptHubTab:CreateSection("Temporary Executor")
+
+local tempScript = ""
+
+local TempInput = ScriptHubTab:CreateInput({
+   Name = "Script Loader",
+   PlaceholderText = "Paste script or loadstring here...",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      tempScript = Text
+   end,
+})
+
+ScriptHubTab:CreateButton({
+   Name = "Execute",
+   Callback = function()
+      if tempScript ~= "" then
+          local func, loadErr = loadstring(tempScript)
+          if not func then
+              Notify("Syntax Error", tostring(loadErr), 3)
+          else
+              local success, err = pcall(func)
+              if not success then
+                  Notify("Runtime Error", tostring(err), 3)
+              else
+                  Notify("Success", "Script Executed", 2)
+              end
+          end
+      end
+   end,
+})
+
+ScriptHubTab:CreateButton({
+   Name = "Clear",
+   Callback = function()
+      tempScript = ""
+      TempInput:Set("")
+   end,
+})
+
+local SectionSaved = ScriptHubTab:CreateSection("Saved Scripts Manager")
+
+local savedScriptName = ""
+local savedScriptCode = ""
+local ScriptsDropdown
+
+ScriptHubTab:CreateInput({
+   Name = "Script Name",
+   PlaceholderText = "e.g., Infinite Yield",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      savedScriptName = Text
+   end,
+})
+
+ScriptHubTab:CreateInput({
+   Name = "Script Code/URL",
+   PlaceholderText = "Paste code here",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      savedScriptCode = Text
+   end,
+})
+
+ScriptHubTab:CreateButton({
+   Name = "Save Script",
+   Callback = function()
+      if savedScriptName ~= "" and savedScriptCode ~= "" then
+          savedScripts[savedScriptName] = savedScriptCode
+          saveScripts()
+          Notify("Saved", savedScriptName .. " added!", 2)
+          if ScriptsDropdown then
+              ScriptsDropdown:Refresh(getScriptNames())
+          end
+      else
+          Notify("Error", "Name or Code is empty", 2)
+      end
+   end,
+})
+
+ScriptsDropdown = ScriptHubTab:CreateDropdown({
+   Name = "Your Saved Scripts",
+   Options = getScriptNames(),
+   CurrentOption = {""},
+   MultipleOptions = false,
+   Flag = "ScriptsDropdown",
+   Callback = function(Option)
+   end,
+})
+
+ScriptHubTab:CreateButton({
+   Name = "Execute Selected",
+   Callback = function()
+      local selected = ScriptsDropdown.CurrentOption[1]
+      if selected and savedScripts[selected] then
+          local code = savedScripts[selected]
+          local func, loadErr = loadstring(code)
+          if not func then
+             Notify("Error", tostring(loadErr), 3)
+          else
+             local success, err = pcall(func)
+             if not success then
+                 Notify("Error", tostring(err), 3)
+             else
+                 Notify("Executed", selected, 2)
+             end
+          end
+      end
+   end,
+})
+
+ScriptHubTab:CreateButton({
+   Name = "Delete Selected",
+   Callback = function()
+      local selected = ScriptsDropdown.CurrentOption[1]
+      if selected and savedScripts[selected] then
+          savedScripts[selected] = nil
+          saveScripts()
+          ScriptsDropdown:Refresh(getScriptNames())
+          Notify("Deleted", selected .. " removed.", 2)
+      end
+   end,
+})
+
+local MiscTab = Window:CreateTab("Misc", 4483362458)
+local MiscSection = MiscTab:CreateSection("Extra")
+
+MiscTab:CreateButton({
+   Name = "Rejoin Server",
+   Callback = function()
+      game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
+   end,
+})
+
+MiscTab:CreateButton({
+   Name = "Destroy UI",
+   Callback = function()
+      Rayfield:Destroy()
+   end,
+})
