@@ -167,7 +167,6 @@ local function flingTargetPlayer(targetPlayer)
     end)
 end
 
-getgenv().SecureMode = true
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
@@ -326,7 +325,7 @@ local function standLogic()
                     standPlatform.Parent = workspace
                 end
                 local bob = math.sin(tick() * 2) * 0.8
-                local goalCF = tRoot.CFrame * CFrame.new(0, 3 + bob, -0.5)
+                local goalCF = tRoot.CFrame * CFrame.new(0, 3 + bob, -0.01)
                 if standPlatform then
                     standPlatform.CFrame = goalCF * CFrame.new(0, -3, 0)
                 end
