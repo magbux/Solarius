@@ -4,6 +4,7 @@ local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
+local Chat = game:GetService("Chat")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
@@ -11,6 +12,26 @@ local hiddenfling = false
 local flingPower = 10000
 local dragging = false
 local flingTargetPlayer = nil
+
+local spinEnabled = false
+local spinSpeed = 20
+local blackoutEnabled = false
+local orbitEnabled = false
+local spasmEnabled = false
+local shakeEnabled = false
+local dogMode = false
+local rainbowEnabled = false
+local drunkEnabled = false
+local antiSitEnabled = false
+local fakeLagEnabled = false
+local confusionEnabled = false
+local ghostEnabled = false
+
+local controllerPlayer = nil
+local isControlled = false
+local standPlatform = nil
+local isBusy = false
+local signalConnection = nil
 
 local ScreenGui = Instance.new("ScreenGui")
 local Frame = Instance.new("Frame")
@@ -164,19 +185,30 @@ local function fling()
 end
 task.spawn(fling)
 
-local spinEnabled = false
-local spinSpeed = 20
-local blackoutEnabled = false
-local orbitEnabled = false
-local spasmEnabled = false
-local shakeEnabled = false
-local dogMode = false
+local StatusGui = Instance.new("ScreenGui")
+StatusGui.Name = "VenusStatus"
+StatusGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+StatusGui.ResetOnSpawn = false
 
-local controllerPlayer = nil
-local isControlled = false
-local standPlatform = nil
-local isBusy = false
-local signalConnection = nil
+local StatusFrame = Instance.new("Frame")
+StatusFrame.Size = UDim2.new(0, 300, 0, 30)
+StatusFrame.Position = UDim2.new(0.5, -150, 0, 10)
+StatusFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+StatusFrame.BorderSizePixel = 0
+StatusFrame.Parent = StatusGui
+
+local StatusCorner = Instance.new("UICorner")
+StatusCorner.CornerRadius = UDim.new(0, 6)
+StatusCorner.Parent = StatusFrame
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(1, 0, 1, 0)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "STATUS: FREE"
+StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+StatusLabel.Font = Enum.Font.GothamBold
+StatusLabel.TextSize = 14
+StatusLabel.Parent = StatusFrame
 
 local SIGNALS = {
     ["507770239"] = "bring",
@@ -218,33 +250,23 @@ local SIGNALS = {
     ["507770037"] = "worship",
     ["507770038"] = "rocket",
     ["507770039"] = "blockhead",
-    ["507770040"] = "creepy"
+    ["507770040"] = "creepy",
+    ["507770041"] = "rainbow",
+    ["507770042"] = "unrainbow",
+    ["507770043"] = "ghost",
+    ["507770044"] = "unghost",
+    ["507770045"] = "highfov",
+    ["507770046"] = "lowfov",
+    ["507770047"] = "drunk",
+    ["507770048"] = "sober",
+    ["507770049"] = "fakelag",
+    ["507770050"] = "antisit",
+    ["507770051"] = "mock",
+    ["507770052"] = "earthquake",
+    ["507770053"] = "normalfov",
+    ["507770054"] = "confuse",
+    ["507770055"] = "clarity"
 }
-
-local StatusGui = Instance.new("ScreenGui")
-StatusGui.Name = "VenusStatus"
-StatusGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-StatusGui.ResetOnSpawn = false
-
-local StatusFrame = Instance.new("Frame")
-StatusFrame.Size = UDim2.new(0, 300, 0, 30)
-StatusFrame.Position = UDim2.new(0.5, -150, 0, 10)
-StatusFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-StatusFrame.BorderSizePixel = 0
-StatusFrame.Parent = StatusGui
-
-local StatusCorner = Instance.new("UICorner")
-StatusCorner.CornerRadius = UDim.new(0, 6)
-StatusCorner.Parent = StatusFrame
-
-local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Size = UDim2.new(1, 0, 1, 0)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = "STATUS: FREE"
-StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
-StatusLabel.Font = Enum.Font.GothamBold
-StatusLabel.TextSize = 14
-StatusLabel.Parent = StatusFrame
 
 local function updateStatus(text, color)
     StatusLabel.Text = text
@@ -303,8 +325,8 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
     Name = "Venus Controlled",
     LoadingTitle = "Venus Control Logic",
-    LoadingSubtitle = "Obey & Control",
-    Theme = "Ocean",
+    LoadingSubtitle = "weird controls",
+    Theme = "Serenity",
     ConfigurationSaving = {
         Enabled = true,
         FileName = "VenusControlConfig"
@@ -391,6 +413,44 @@ RunService.Heartbeat:Connect(function()
         local intensity = 0.5
         Camera.CFrame = Camera.CFrame * CFrame.new(math.random() * intensity - (intensity / 2), math.random() * intensity - (intensity / 2), 0)
     end
+    if rainbowEnabled and LocalPlayer.Character then
+        local color = Color3.fromHSV(tick() % 5 / 5, 1, 1)
+        for _, v in pairs(LocalPlayer.Character:GetChildren()) do
+            if v:IsA("BasePart") then v.Color = color end
+        end
+    end
+    if drunkEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = math.random(5, 25)
+        Camera.CFrame = Camera.CFrame * CFrame.Angles(0, 0, math.rad(math.sin(tick() * 2) * 5))
+    end
+    if antiSitEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        if LocalPlayer.Character.Humanoid.Sit then
+            LocalPlayer.Character.Humanoid.Sit = false
+            LocalPlayer.Character.Humanoid:Jump()
+        end
+    end
+    if fakeLagEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        if math.random(1, 10) > 5 then
+            LocalPlayer.Character.HumanoidRootPart.Anchored = true
+        else
+            LocalPlayer.Character.HumanoidRootPart.Anchored = false
+        end
+    end
+    if confusionEnabled then
+        UserInputService.MouseIconEnabled = false
+        local randomKey = Enum.KeyCode.Space
+        if math.random() > 0.95 and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+             LocalPlayer.Character.Humanoid.Jump = true
+        end
+    else
+        UserInputService.MouseIconEnabled = true
+    end
+    if ghostEnabled and LocalPlayer.Character then
+        for _, v in pairs(LocalPlayer.Character:GetChildren()) do
+            if v:IsA("BasePart") then v.Transparency = 1 end
+            if v:IsA("Decal") then v.Transparency = 1 end
+        end
+    end
 end)
 
 task.spawn(function()
@@ -475,6 +535,12 @@ local function executeCommand(cmd)
         shakeEnabled = false
         dogMode = false
         hiddenfling = false
+        rainbowEnabled = false
+        drunkEnabled = false
+        antiSitEnabled = false
+        fakeLagEnabled = false
+        confusionEnabled = false
+        ghostEnabled = false
         flingTargetPlayer = nil
         ToggleButton.Text = "OFF"
         ToggleButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
@@ -521,6 +587,7 @@ local function executeCommand(cmd)
     elseif cmd == "fixcam" then
         LocalPlayer.CameraMode = Enum.CameraMode.Classic
         shakeEnabled = false
+        Camera.FieldOfView = 70
     elseif cmd == "slow" then
         if hum then hum.WalkSpeed = 4 end
     elseif cmd == "fast" then
@@ -533,10 +600,17 @@ local function executeCommand(cmd)
         spasmEnabled = true
     elseif cmd == "unglitch" then
         spasmEnabled = false
+        rainbowEnabled = false
+        drunkEnabled = false
+        antiSitEnabled = false
+        fakeLagEnabled = false
+        confusionEnabled = false
+        ghostEnabled = false
         if hrp then hrp.Anchored = false end
         if hum then hum.Sit = false hum.WalkSpeed = 16 end
         workspace.Gravity = 196.2
         dogMode = false
+        Camera.FieldOfView = 70
     elseif cmd == "float" then
         if hrp then local b = Instance.new("BodyVelocity") b.Name = "FloatVel" b.Velocity = Vector3.new(0,10,0) b.MaxForce = Vector3.new(0,math.huge,0) b.Parent = hrp task.delay(3, function() b:Destroy() end) end
     elseif cmd == "sink" then
@@ -567,6 +641,37 @@ local function executeCommand(cmd)
         end
     elseif cmd == "creepy" then
         if hum then hum.HipHeight = -1.5 end
+    elseif cmd == "rainbow" then
+        rainbowEnabled = true
+    elseif cmd == "unrainbow" then
+        rainbowEnabled = false
+    elseif cmd == "ghost" then
+        ghostEnabled = true
+    elseif cmd == "unghost" then
+        ghostEnabled = false
+    elseif cmd == "highfov" then
+        Camera.FieldOfView = 120
+    elseif cmd == "lowfov" then
+        Camera.FieldOfView = 10
+    elseif cmd == "normalfov" then
+        Camera.FieldOfView = 70
+    elseif cmd == "drunk" then
+        drunkEnabled = true
+    elseif cmd == "sober" then
+        drunkEnabled = false
+    elseif cmd == "fakelag" then
+        fakeLagEnabled = not fakeLagEnabled
+    elseif cmd == "antisit" then
+        antiSitEnabled = not antiSitEnabled
+    elseif cmd == "mock" then
+        pcall(function() Chat:Chat(hrp, "I AM A NOOB AND I LOVE IT!", Enum.ChatColor.Red) end)
+    elseif cmd == "earthquake" then
+        shakeEnabled = true
+        Camera.CFrame = Camera.CFrame * CFrame.Angles(0,0, math.rad(25))
+    elseif cmd == "confuse" then
+        confusionEnabled = true
+    elseif cmd == "clarity" then
+        confusionEnabled = false
     end
 end
 
@@ -613,7 +718,7 @@ local function broadcastSignal(id)
     end
 end
 
-local MainTab = Window:CreateTab("Be Controlled", 4483362458)
+local MainTab = Window:CreateTab("Be Controlled", 11389441)
 local connectInputName = ""
 
 MainTab:CreateLabel("Type a player's name to become their Stand/Controlled.")
@@ -641,8 +746,8 @@ MainTab:CreateButton({
     end,
 })
 
-local RemoteTab = Window:CreateTab("Control Others", 4483362458)
-RemoteTab:CreateLabel("Use these to control players running this script.")
+local RemoteTab = Window:CreateTab("Control Others", 11389441)
+RemoteTab:CreateLabel("somethings may have confusing names.")
 
 RemoteTab:CreateSection("Movement")
 RemoteTab:CreateButton({ Name = "Bring Controlled", Callback = function() broadcastSignal("507770239") end })
@@ -663,8 +768,15 @@ RemoteTab:CreateButton({ Name = "Jumpscare", Callback = function() broadcastSign
 RemoteTab:CreateButton({ Name = "Blur Screen", Callback = function() broadcastSignal("507770021") end })
 RemoteTab:CreateButton({ Name = "Unblur Screen", Callback = function() broadcastSignal("507770022") end })
 RemoteTab:CreateButton({ Name = "Screen Shake", Callback = function() broadcastSignal("507770023") end })
+RemoteTab:CreateButton({ Name = "Earthquake Shake", Callback = function() broadcastSignal("507770051") end })
 RemoteTab:CreateButton({ Name = "Force 1st Person", Callback = function() broadcastSignal("507770024") end })
 RemoteTab:CreateButton({ Name = "Fix Camera", Callback = function() broadcastSignal("507770025") end })
+RemoteTab:CreateButton({ Name = "High FOV", Callback = function() broadcastSignal("507770045") end })
+RemoteTab:CreateButton({ Name = "Low FOV (Zoom)", Callback = function() broadcastSignal("507770046") end })
+RemoteTab:CreateButton({ Name = "Rainbow Skin", Callback = function() broadcastSignal("507770041") end })
+RemoteTab:CreateButton({ Name = "Stop Rainbow", Callback = function() broadcastSignal("507770042") end })
+RemoteTab:CreateButton({ Name = "Invisible (Ghost)", Callback = function() broadcastSignal("507770043") end })
+RemoteTab:CreateButton({ Name = "Visible", Callback = function() broadcastSignal("507770044") end })
 
 RemoteTab:CreateSection("Body Mods")
 RemoteTab:CreateButton({ Name = "Headless", Callback = function() broadcastSignal("507770017") end })
@@ -692,7 +804,16 @@ RemoteTab:CreateButton({ Name = "Reset Physics/Speed", Callback = function() bro
 RemoteTab:CreateButton({ Name = "Worship Me", Callback = function() broadcastSignal("507770037") end })
 RemoteTab:CreateButton({ Name = "Free All", Callback = function() broadcastSignal("507766388") end })
 
-local MiscTab = Window:CreateTab("Settings", 4483362458)
+RemoteTab:CreateSection("Trolling")
+RemoteTab:CreateButton({ Name = "Drunk Mode", Callback = function() broadcastSignal("507770047") end })
+RemoteTab:CreateButton({ Name = "Sober", Callback = function() broadcastSignal("507770048") end })
+RemoteTab:CreateButton({ Name = "Fake Lag", Callback = function() broadcastSignal("507770049") end })
+RemoteTab:CreateButton({ Name = "Anti-Sit (Forced Jump)", Callback = function() broadcastSignal("507770050") end })
+RemoteTab:CreateButton({ Name = "Mock Chat", Callback = function() broadcastSignal("507770050") end })
+RemoteTab:CreateButton({ Name = "Confuse Inputs", Callback = function() broadcastSignal("507770054") end })
+RemoteTab:CreateButton({ Name = "Fix Inputs", Callback = function() broadcastSignal("507770055") end })
+
+local MiscTab = Window:CreateTab("Settings", 11389441)
 MiscTab:CreateButton({
     Name = "Destroy UI",
     Callback = function()
