@@ -33,6 +33,14 @@ local standPlatform = nil
 local isBusy = false
 local signalConnection = nil
 
+local invis_on = false
+local defaultSpeed = 16
+local boostedSpeed = 48
+local isSpeedBoosted = false
+local invisSound = Instance.new("Sound", LocalPlayer:WaitForChild("PlayerGui"))
+invisSound.SoundId = "rbxassetid://942127495"
+invisSound.Volume = 1
+
 local ScreenGui = Instance.new("ScreenGui")
 local Frame = Instance.new("Frame")
 local ToggleButton = Instance.new("TextButton")
@@ -341,6 +349,71 @@ local function Notify(title, content, duration)
         Image = 4483362458,
     })
 end
+
+local function setInvisTransparency(transparency)
+    local char = LocalPlayer.Character
+    if char then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") or part:IsA("Decal") then
+                part.Transparency = transparency
+            end
+        end
+    end
+end
+
+local function toggleInvisLogic()
+    invis_on = not invis_on
+    invisSound:Play()
+    if invis_on then
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local savedpos = hrp.CFrame
+            task.wait()
+            char:MoveTo(Vector3.new(-25.95, 84, 3537.55))
+            task.wait(0.15)
+            local Seat = Instance.new('Seat', workspace)
+            Seat.Anchored = false
+            Seat.CanCollide = false
+            Seat.Name = 'invischair'
+            Seat.Transparency = 1
+            Seat.Position = Vector3.new(-25.95, 84, 3537.55)
+            local Weld = Instance.new("Weld", Seat)
+            Weld.Part0 = Seat
+            Weld.Part1 = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+            task.wait()
+            Seat.CFrame = savedpos
+            setInvisTransparency(0.5)
+            Notify("Invis ON", "You are now glitch-invisible.", 3)
+        end
+    else
+        local invisChair = workspace:FindFirstChild('invischair')
+        if invisChair then invisChair:Destroy() end
+        setInvisTransparency(0)
+        Notify("Invis OFF", "Visible again.", 3)
+    end
+end
+
+local function toggleSpeedLogic()
+    isSpeedBoosted = not isSpeedBoosted
+    invisSound:Play()
+    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+    if hum then
+        if isSpeedBoosted then
+            hum.WalkSpeed = boostedSpeed
+            Notify("Speed ON", "Speed set to " .. boostedSpeed, 3)
+        else
+            hum.WalkSpeed = defaultSpeed
+            Notify("Speed OFF", "Speed reset.", 3)
+        end
+    end
+end
+
+LocalPlayer.CharacterAdded:Connect(function(character)
+    isSpeedBoosted = false
+    local humanoid = character:WaitForChild("Humanoid")
+    humanoid.WalkSpeed = defaultSpeed
+end)
 
 local function standLogic()
     if isControlled and controllerPlayer and controllerPlayer.Character and controllerPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -812,6 +885,17 @@ RemoteTab:CreateButton({ Name = "Anti-Sit (Forced Jump)", Callback = function() 
 RemoteTab:CreateButton({ Name = "Anti Sit 2", Callback = function() broadcastSignal("507770050") end })
 RemoteTab:CreateButton({ Name = "Confuse Inputs", Callback = function() broadcastSignal("507770054") end })
 RemoteTab:CreateButton({ Name = "Fix Inputs", Callback = function() broadcastSignal("507770055") end })
+
+local FeInvisTab = Window:CreateTab("FE Invis", "cat")
+FeInvisTab:CreateLabel("Credit: xXHaNdEROXx TG@MK14CFG")
+FeInvisTab:CreateButton({
+    Name = "Toggle FE Invisible",
+    Callback = toggleInvisLogic
+})
+FeInvisTab:CreateButton({
+    Name = "Toggle Speed Boost",
+    Callback = toggleSpeedLogic
+})
 
 local MiscTab = Window:CreateTab("Settings", "cat")
 MiscTab:CreateButton({
