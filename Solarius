@@ -62,7 +62,6 @@ local signalConnection = nil
 local SIGNALS = {
     ["507770239"] = "bring",
     ["507770453"] = "jump",
-    ["507770677"] = "fling_target",
     ["507770818"] = "kill",
     ["507771019"] = "stand",
     ["507771955"] = "void",
@@ -129,26 +128,6 @@ local function triggerJumpscare()
     snd:Play()
     task.wait(2)
     sc:Destroy()
-end
-
-local function getPlayerMasterIsLookingAt()
-    if not controllerPlayer or not controllerPlayer.Character then return nil end
-    local masterRoot = controllerPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not masterRoot then return nil end
-    local rayOrigin = masterRoot.Position
-    local rayDirection = masterRoot.CFrame.LookVector * 1000
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterDescendantsInstances = {controllerPlayer.Character, LocalPlayer.Character}
-    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-    local result = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
-    if result and result.Instance then
-        local hitModel = result.Instance:FindFirstAncestorOfClass("Model")
-        if hitModel then
-            local pl = Players:GetPlayerFromCharacter(hitModel)
-            return pl
-        end
-    end
-    return nil
 end
 
 local function targetFlingRoutine(target)
@@ -344,7 +323,7 @@ local function standLogic()
                     standPlatform.Parent = workspace
                 end
                 local bob = math.sin(tick() * 2) * 0.8
-                local goalCF = tRoot.CFrame * CFrame.new(0, 3 + bob, -4)
+                local goalCF = tRoot.CFrame * CFrame.new(0, 3 + bob, -2.5)
                 if standPlatform then
                     standPlatform.CFrame = goalCF * CFrame.new(0, -3, 0)
                 end
@@ -368,7 +347,7 @@ local function executeCommand(cmd)
     elseif cmd == "bring" then
         isBusy = true
         if LocalPlayer.Character and controllerPlayer and controllerPlayer.Character then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = controllerPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,3)
+            LocalPlayer.Character.HumanoidRootPart.CFrame = controllerPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,-3)
         end
         task.wait(0.5)
         isBusy = false
@@ -392,15 +371,6 @@ local function executeCommand(cmd)
         task.wait(2)
         hiddenfling = false
         isBusy = false
-    elseif cmd == "fling_target" then
-        isBusy = true
-        local t = getPlayerMasterIsLookingAt()
-        if t then
-            Notify("Attacking", "Master wants me to kill " .. t.Name, 3)
-            targetFlingRoutine(t)
-        else
-            isBusy = false
-        end
     elseif cmd == "stand" then
         isBusy = false
     elseif cmd == "free" then
@@ -519,6 +489,30 @@ MainTab:CreateButton({
 })
 
 local RemoteTab = Window:CreateTab("Remote Admin", 4483362458)
+RemoteTab:CreateLabel("Controls work by Body Language signals.")
+
+local flingTargetName = ""
+RemoteTab:CreateInput({
+    Name = "Fling Target Name",
+    PlaceholderText = "Type player name to fling",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        flingTargetName = Text
+    end,
+})
+RemoteTab:CreateButton({
+    Name = "Fling Typed Player",
+    Callback = function()
+        local t = findPlayerPartial(flingTargetName)
+        if t and t ~= LocalPlayer then
+            targetFlingRoutine(t)
+            Notify("Flinging", "Flinging " .. t.Name .. "...", 3)
+        else
+            Notify("Error", "Player not found or invalid", 3)
+        end
+    end,
+})
+
 RemoteTab:CreateButton({
     Name = "Jumpscare Them",
     Callback = function() broadcastSignal("507776879") end,
@@ -538,13 +532,6 @@ RemoteTab:CreateButton({
 RemoteTab:CreateButton({
     Name = "Summon as Stand (Reset)",
     Callback = function() broadcastSignal("507771019") end,
-})
-RemoteTab:CreateButton({
-    Name = "Attack My Target (Fling)",
-    Callback = function()
-        Notify("Order", "Look at a player to order the attack!", 3)
-        broadcastSignal("507770677")
-    end,
 })
 RemoteTab:CreateButton({
     Name = "Bring Slaves to Me",
