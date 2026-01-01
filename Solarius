@@ -815,7 +815,7 @@ RemoteTab:CreateButton({ Name = "Fix Inputs", Callback = function() broadcastSig
 
 local MiscTab = Window:CreateTab("Settings", "cat")
 MiscTab:CreateButton({
-    Name = "Destroy The UI",
+    Name = "Destroy The Ui",
     Callback = function()
         Rayfield:Destroy()
     end,
