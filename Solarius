@@ -5,7 +5,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- // Logic Variables //
 local hiddenfling = false
 local flingPower = 10000
 local spinEnabled = false
@@ -13,19 +12,17 @@ local spinSpeed = 20
 local blackoutEnabled = false
 
 local controllerPlayer = nil
-local isSlave = false
+local isControlled = false
 local standPlatform = nil
 local isBusy = false
 local signalConnection = nil
 
--- // Anti-Fling detection setup (required for internal fling command) //
 if not ReplicatedStorage:FindFirstChild("juisdfj0i32i0eidsuf0iok") then
     local detection = Instance.new("Decal")
     detection.Name = "juisdfj0i32i0eidsuf0iok"
     detection.Parent = ReplicatedStorage
 end
 
--- // Internal Fling Logic (Only used if Master commands it) //
 local function fling()
     local hrp, c, vel, movel = nil, nil, nil, 0.1
     while true do
@@ -54,7 +51,6 @@ local function fling()
 end
 task.spawn(fling)
 
--- // Signals Dictionary //
 local SIGNALS = {
     ["507770239"] = "bring",
     ["507770453"] = "jump",
@@ -68,7 +64,6 @@ local SIGNALS = {
     ["507765000"] = "blackout"
 }
 
--- // Status GUI //
 local StatusGui = Instance.new("ScreenGui")
 StatusGui.Name = "VenusStatus"
 StatusGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
@@ -99,7 +94,6 @@ local function updateStatus(text, color)
     StatusLabel.TextColor3 = color
 end
 
--- // Utility Functions //
 local function findPlayerPartial(text)
     for _, p in pairs(Players:GetPlayers()) do
         if string.find(string.lower(p.Name), string.lower(text)) or string.find(string.lower(p.DisplayName), string.lower(text)) then
@@ -161,17 +155,16 @@ local function flingTargetPlayer(targetPlayer)
     end)
 end
 
--- // UI Library //
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
     Name = "Venus Controlled",
-    LoadingTitle = "Venus Slave Logic",
+    LoadingTitle = "Venus Control Logic",
     LoadingSubtitle = "Obey & Control",
     Theme = "Ocean",
     ConfigurationSaving = {
         Enabled = true,
-        FileName = "VenusSlaveConfig"
+        FileName = "VenusControlConfig"
     },
 })
 
@@ -184,9 +177,8 @@ local function Notify(title, content, duration)
     })
 end
 
--- // Stand Logic (Positioning) //
 local function standLogic()
-    if isSlave and controllerPlayer and controllerPlayer.Character and controllerPlayer.Character:FindFirstChild("HumanoidRootPart") then
+    if isControlled and controllerPlayer and controllerPlayer.Character and controllerPlayer.Character:FindFirstChild("HumanoidRootPart") then
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             if not isBusy then
                 local char = LocalPlayer.Character
@@ -197,11 +189,10 @@ local function standLogic()
                     hum:ChangeState(Enum.HumanoidStateType.Physics)
                 end
                 
-                -- Create invisible platform to stand on
                 if not standPlatform then
                     standPlatform = Instance.new("Part")
                     standPlatform.Size = Vector3.new(4, 0.5, 4)
-                    standPlatform.Transparency = 1 -- Made fully transparent
+                    standPlatform.Transparency = 1
                     standPlatform.Anchored = true
                     standPlatform.CanCollide = true
                     standPlatform.Name = "StandPlatform"
@@ -210,9 +201,7 @@ local function standLogic()
                 
                 local bob = math.sin(tick() * 2) * 0.8
                 
-                -- UPDATED POSITION: Positive Z is Backward. 
-                -- 0, 3+bob, 4 puts the slave 4 studs BEHIND the master and slightly up.
-                local goalCF = tRoot.CFrame * CFrame.new(0, 3 + bob, 4)
+                local goalCF = tRoot.CFrame * CFrame.new(0, 3 + bob, 2.5)
                 
                 if standPlatform then
                     standPlatform.CFrame = goalCF * CFrame.new(0, -3, 0)
@@ -229,14 +218,12 @@ local function standLogic()
 end
 RunService.Heartbeat:Connect(standLogic)
 
--- // Spin Logic (Triggered by Master) //
 RunService.Heartbeat:Connect(function()
     if spinEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(spinSpeed), 0)
     end
 end)
 
--- // Blackout Logic //
 task.spawn(function()
     while true do
         task.wait(0.3)
@@ -255,17 +242,15 @@ task.spawn(function()
     end
 end)
 
--- // Command Execution //
 local function executeCommand(cmd)
-    if not isSlave then return end
+    if not isControlled then return end
     Notify("Command Received", cmd, 3)
     if cmd == "jump" then
         if LocalPlayer.Character then LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end
     elseif cmd == "bring" then
         isBusy = true
         if LocalPlayer.Character and controllerPlayer and controllerPlayer.Character then
-            -- Teleport behind master
-            LocalPlayer.Character.HumanoidRootPart.CFrame = controllerPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,4)
+            LocalPlayer.Character.HumanoidRootPart.CFrame = controllerPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,2.5)
         end
         task.wait(0.5)
         isBusy = false
@@ -292,7 +277,7 @@ local function executeCommand(cmd)
     elseif cmd == "stand" then
         isBusy = false
     elseif cmd == "free" then
-        isSlave = false
+        isControlled = false
         controllerPlayer = nil
         if signalConnection then
             signalConnection:Disconnect()
@@ -313,7 +298,6 @@ local function executeCommand(cmd)
     end
 end
 
--- // Signal Listener //
 local function initSignalListener(master)
     if signalConnection then signalConnection:Disconnect() end
     local hum = master.Character and master.Character:FindFirstChild("Humanoid")
@@ -357,14 +341,12 @@ local function broadcastSignal(id)
     end
 end
 
--- // GUI Tabs //
-
 local MainTab = Window:CreateTab("Be Controlled", 4483362458)
 local connectInputName = ""
 
-MainTab:CreateLabel("Type a player's name to become their Stand/Slave.")
+MainTab:CreateLabel("Type a player's name to become their Stand/Controlled.")
 MainTab:CreateInput({
-    Name = "Master's Name",
+    Name = "Controller's Name",
     PlaceholderText = "Type Player Name to OBEY",
     RemoveTextAfterFocusLost = false,
     Callback = function(Text)
@@ -377,9 +359,9 @@ MainTab:CreateButton({
         local t = findPlayerPartial(connectInputName)
         if t and t ~= LocalPlayer then
             controllerPlayer = t
-            isSlave = true
+            isControlled = true
             initSignalListener(t)
-            updateStatus("SLAVE (Controlled by " .. t.Name .. ")", Color3.fromRGB(255, 50, 50))
+            updateStatus("CONTROLLED (Controlled by " .. t.Name .. ")", Color3.fromRGB(255, 50, 50))
             Notify("Submitted", "You are now controlled by " .. t.Name .. ".", 5)
         else
             Notify("Error", "Player invalid or not found", 3)
@@ -414,7 +396,7 @@ RemoteTab:CreateButton({
 
 RemoteTab:CreateSection("Commands")
 RemoteTab:CreateButton({
-    Name = "Toggle Slave Blackout (Blind)",
+    Name = "Toggle Controlled Blackout (Blind)",
     Callback = function() broadcastSignal("507765000") end,
 })
 RemoteTab:CreateButton({
@@ -438,19 +420,19 @@ RemoteTab:CreateButton({
     Callback = function() broadcastSignal("507771019") end,
 })
 RemoteTab:CreateButton({
-    Name = "Bring Slaves to Me",
+    Name = "Bring Controlled to Me",
     Callback = function() broadcastSignal("507770239") end,
 })
 RemoteTab:CreateButton({
-    Name = "Make Slaves Jump",
+    Name = "Make Controlled Jump",
     Callback = function() broadcastSignal("507770453") end,
 })
 RemoteTab:CreateButton({
-    Name = "Toggle Slave Spin",
+    Name = "Toggle Controlled Spin",
     Callback = function() broadcastSignal("507772104") end,
 })
 RemoteTab:CreateButton({
-    Name = "Free Slaves",
+    Name = "Free Controlled",
     Callback = function() broadcastSignal("507766388") end,
 })
 
