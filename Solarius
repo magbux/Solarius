@@ -52,6 +52,7 @@ local noclip = false
 local infJump = false
 local spinEnabled = false
 local spinSpeed = 20
+local blackoutEnabled = false
 
 local controllerPlayer = nil
 local isSlave = false
@@ -68,7 +69,8 @@ local SIGNALS = {
     ["507772104"] = "spin",
     ["507776879"] = "jumpscare",
     ["507766388"] = "free",
-    ["507771666"] = "fling_self"
+    ["507771666"] = "fling_self",
+    ["507765000"] = "blackout"
 }
 
 local StatusGui = Instance.new("ScreenGui")
@@ -130,52 +132,53 @@ local function triggerJumpscare()
     sc:Destroy()
 end
 
-local function targetFlingRoutine(target)
-    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character then
-        local lpRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not lpRoot then return end
-        isBusy = true
-        local oldPos = lpRoot.CFrame
-        hiddenfling = true
-        local startTime = tick()
-        local con
-        con = RunService.RenderStepped:Connect(function()
-            if tick() - startTime > 2 or not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then
-                con:Disconnect()
-                hiddenfling = false
-                lpRoot.Velocity = Vector3.zero
-                lpRoot.CFrame = oldPos
-                isBusy = false
-                return
-            end
-            lpRoot.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,0.5)
-            lpRoot.Velocity = Vector3.new(0,10000,0)
-        end)
+local function flingTargetPlayer(targetPlayer)
+    local targetChar = targetPlayer.Character
+    if not targetChar or not targetChar:FindFirstChild("HumanoidRootPart") then
+        Notify("Fling Error", "Target has no character or HRP", 3)
+        return
     end
+    local targetHRP = targetChar.HumanoidRootPart
+
+    local flingPart = Instance.new("Part")
+    flingPart.Name = "FlingPart"
+    flingPart.Size = Vector3.new(5, 5, 5)
+    flingPart.Transparency = 1
+    flingPart.CanCollide = false
+    flingPart.Position = targetHRP.Position
+    flingPart.Parent = workspace
+
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = flingPart
+    weld.Part1 = targetHRP
+    weld.Parent = flingPart
+
+    local bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bv.Velocity = Vector3.new(0, flingPower * 5, 0)
+    bv.Parent = flingPart
+
+    Notify("Flinging", "Flinging " .. targetPlayer.Name .. " (no effect on you)", 3)
+
+    task.delay(1.5, function()
+        if bv then bv:Destroy() end
+        if weld then weld:Destroy() end
+        if flingPart then flingPart:Destroy() end
+    end)
 end
 
 getgenv().SecureMode = true
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source'))()
 
 local Window = Rayfield:CreateWindow({
     Name = "Venus",
-    Icon = 0,
     LoadingTitle = "Venus Silent",
     LoadingSubtitle = "No Chat Required",
     Theme = "Ocean",
-    DisableRayfieldPrompts = false,
-    DisableBuildWarnings = false,
     ConfigurationSaving = {
         Enabled = true,
-        FolderName = nil,
         FileName = "VenusConfig"
     },
-    Discord = {
-        Enabled = false,
-        Invite = "noinvitelink",
-        RememberJoins = true
-    },
-    KeySystem = false,
 })
 
 local function Notify(title, content, duration)
@@ -323,7 +326,7 @@ local function standLogic()
                     standPlatform.Parent = workspace
                 end
                 local bob = math.sin(tick() * 2) * 0.8
-                local goalCF = tRoot.CFrame * CFrame.new(0, 3 + bob, -2.5)
+                local goalCF = tRoot.CFrame * CFrame.new(0, 3 + bob, -0.25)
                 if standPlatform then
                     standPlatform.CFrame = goalCF * CFrame.new(0, -3, 0)
                 end
@@ -338,6 +341,30 @@ local function standLogic()
     end
 end
 RunService.Heartbeat:Connect(standLogic)
+
+RunService.Heartbeat:Connect(function()
+    if spinEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(spinSpeed), 0)
+    end
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(0.3)
+        if blackoutEnabled and (not LocalPlayer.PlayerGui:FindFirstChild("BlackoutGui")) then
+            local gui = Instance.new("ScreenGui")
+            gui.Name = "BlackoutGui"
+            gui.ResetOnSpawn = false
+            gui.IgnoreGuiInset = true
+            gui.Parent = LocalPlayer.PlayerGui
+            local frame = Instance.new("Frame")
+            frame.Size = UDim2.new(1, 0, 1, 0)
+            frame.BackgroundColor3 = Color3.new(0, 0, 0)
+            frame.ZIndex = 999
+            frame.Parent = gui
+        end
+    end
+end)
 
 local function executeCommand(cmd)
     if not isSlave then return end
@@ -386,6 +413,12 @@ local function executeCommand(cmd)
         end
         updateStatus("STATUS: FREE", Color3.fromRGB(100, 255, 100))
         Notify("Freed", "You are no longer controlled.", 5)
+    elseif cmd == "blackout" then
+        blackoutEnabled = not blackoutEnabled
+        if not blackoutEnabled and LocalPlayer.PlayerGui:FindFirstChild("BlackoutGui") then
+            LocalPlayer.PlayerGui.BlackoutGui:Destroy()
+        end
+        Notify("Blackout", blackoutEnabled and "Enabled (permanent)" or "Disabled", 3)
     end
 end
 
@@ -436,7 +469,6 @@ local MainTab = Window:CreateTab("Main", 4483362458)
 MainTab:CreateToggle({
     Name = "Enable Fling",
     CurrentValue = false,
-    Flag = "FlingToggle",
     Callback = function(Value)
         hiddenfling = Value
     end,
@@ -447,7 +479,6 @@ MainTab:CreateSlider({
     Increment = 1000,
     Suffix = "Power",
     CurrentValue = 10000,
-    Flag = "FlingPower",
     Callback = function(Value)
         flingPower = Value
     end,
@@ -455,7 +486,6 @@ MainTab:CreateSlider({
 MainTab:CreateToggle({
     Name = "Seat Invisibility",
     CurrentValue = false,
-    Flag = "InvisToggle",
     Callback = function(Value)
         if Value ~= invis_on then
             toggleInvisibility()
@@ -505,14 +535,17 @@ RemoteTab:CreateButton({
     Callback = function()
         local t = findPlayerPartial(flingTargetName)
         if t and t ~= LocalPlayer then
-            targetFlingRoutine(t)
-            Notify("Flinging", "Flinging " .. t.Name .. "...", 3)
+            flingTargetPlayer(t)
         else
             Notify("Error", "Player not found or invalid", 3)
         end
     end,
 })
 
+RemoteTab:CreateButton({
+    Name = "Toggle Slave Blackout (Blind)",
+    Callback = function() broadcastSignal("507765000") end,
+})
 RemoteTab:CreateButton({
     Name = "Jumpscare Them",
     Callback = function() broadcastSignal("507776879") end,
@@ -553,7 +586,6 @@ RemoteTab:CreateButton({
 MainTab:CreateToggle({
     Name = "Fly",
     CurrentValue = false,
-    Flag = "FlyToggle",
     Callback = function(Value)
         flySettings.flying = Value
         if flySettings.flying then
@@ -567,7 +599,6 @@ MainTab:CreateSlider({
     Increment = 10,
     Suffix = "Studs",
     CurrentValue = 50,
-    Flag = "FlySpeed",
     Callback = function(Value)
         flySettings.speed = Value
     end,
@@ -575,7 +606,6 @@ MainTab:CreateSlider({
 MainTab:CreateToggle({
     Name = "Noclip",
     CurrentValue = false,
-    Flag = "NoclipToggle",
     Callback = function(Value)
         noclip = Value
     end,
@@ -583,7 +613,6 @@ MainTab:CreateToggle({
 MainTab:CreateToggle({
     Name = "Infinite Jump",
     CurrentValue = false,
-    Flag = "InfJumpToggle",
     Callback = function(Value)
         infJump = Value
     end,
@@ -594,7 +623,6 @@ MainTab:CreateSlider({
     Increment = 1,
     Suffix = "Speed",
     CurrentValue = 16,
-    Flag = "WalkSpeed",
     Callback = function(Value)
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
             LocalPlayer.Character.Humanoid.WalkSpeed = Value
@@ -607,7 +635,6 @@ MainTab:CreateSlider({
     Increment = 1,
     Suffix = "Power",
     CurrentValue = 50,
-    Flag = "JumpPower",
     Callback = function(Value)
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
             LocalPlayer.Character.Humanoid.UseJumpPower = true
@@ -618,7 +645,6 @@ MainTab:CreateSlider({
 MainTab:CreateToggle({
     Name = "SpinBot",
     CurrentValue = false,
-    Flag = "SpinToggle",
     Callback = function(Value)
         spinEnabled = Value
     end,
@@ -629,7 +655,6 @@ MainTab:CreateSlider({
     Increment = 5,
     Suffix = "RPM",
     CurrentValue = 20,
-    Flag = "SpinSpeed",
     Callback = function(Value)
         spinSpeed = Value
     end,
