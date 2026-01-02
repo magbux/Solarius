@@ -7,7 +7,6 @@ local Lighting = game:GetService("Lighting")
 local Chat = game:GetService("Chat")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
-local Mouse = LocalPlayer:GetMouse()
 
 local hiddenfling = false
 local flingPower = 10000
@@ -167,6 +166,7 @@ local SIGNALS = {
     ["507770056"] = "feinvis",
     ["507770057"] = "fespeed",
     ["507770058"] = "togglestand",
+    ["507770062"] = "pilot_mode",
     ["507770095"] = "throw_space"
 }
 
@@ -487,7 +487,7 @@ local function executeCommand(cmd)
             flingTargetPlayer = nil
         end
         isBusy = false
-    elseif cmd == "stand" then
+    elseif cmd == "stand" or cmd == "pilot_mode" then
         isBusy = false
         orbitEnabled = false
         dogMode = false
@@ -748,7 +748,7 @@ RemoteTab:CreateToggle({
     Callback = function(Value)
         pilotClickToMove = Value
         if pilotClickToMove then
-            broadcastSignal("507771019") 
+            broadcastSignal("507770062") 
             if LocalPlayer.Character then
                 for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
                     if part:IsA("BasePart") or part:IsA("Decal") then
@@ -759,9 +759,19 @@ RemoteTab:CreateToggle({
             end
             
             if pilotConnection then pilotConnection:Disconnect() end
-            pilotConnection = Mouse.Button1Down:Connect(function()
-                if pilotClickToMove and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-                    LocalPlayer.Character.Humanoid:MoveTo(Mouse.Hit.Position)
+            pilotConnection = UserInputService.InputBegan:Connect(function(input, gpe)
+                if gpe then return end
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    local mouseLocation = UserInputService:GetMouseLocation()
+                    local ray = Camera:ViewportPointToRay(mouseLocation.X, mouseLocation.Y)
+                    local params = RaycastParams.new()
+                    params.FilterDescendantsInstances = {LocalPlayer.Character}
+                    params.FilterType = Enum.RaycastFilterType.Exclude
+                    
+                    local result = workspace:Raycast(ray.Origin, ray.Direction * 1000, params)
+                    if result and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                        LocalPlayer.Character.Humanoid:MoveTo(result.Position)
+                    end
                 end
             end)
             
