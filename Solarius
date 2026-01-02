@@ -7,10 +7,10 @@ local Lighting = game:GetService("Lighting")
 local Chat = game:GetService("Chat")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
+local Mouse = LocalPlayer:GetMouse()
 
 local hiddenfling = false
 local flingPower = 10000
-local dragging = false
 local flingTargetPlayer = nil
 
 local spinEnabled = false
@@ -39,128 +39,12 @@ local defaultSpeed = 16
 local boostedSpeed = 48
 local isSpeedBoosted = false
 
-local remoteControlEnabled = false
-local originalCameraSubject = nil
+local pilotClickToMove = false
 local pilotConnection = nil
 
 local invisSound = Instance.new("Sound", LocalPlayer:WaitForChild("PlayerGui"))
 invisSound.SoundId = "rbxassetid://942127495"
 invisSound.Volume = 1
-
-local ScreenGui = Instance.new("ScreenGui")
-local Frame = Instance.new("Frame")
-local ToggleButton = Instance.new("TextButton")
-local TextLabel = Instance.new("TextLabel")
-local HideButton = Instance.new("TextButton")
-local PowerLabel = Instance.new("TextLabel")
-local PowerSlider = Instance.new("TextButton")
-local PowerBar = Instance.new("Frame")
-local UICorner = Instance.new("UICorner")
-
-ScreenGui.Name = "FlingGUI"
-ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.ResetOnSpawn = false
-
-Frame.Parent = ScreenGui
-Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Frame.Position = UDim2.new(0.35, 0, 0.4, 0)
-Frame.Size = UDim2.new(0, 220, 0, 150)
-Frame.Active = true
-Frame.Draggable = true
-UICorner.Parent = Frame
-
-TextLabel.Parent = Frame
-TextLabel.BackgroundTransparency = 1
-TextLabel.Size = UDim2.new(1, 0, 0.2, 0)
-TextLabel.Font = Enum.Font.SourceSansBold
-TextLabel.Text = "Ultimate Fling"
-TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-TextLabel.TextSize = 22
-
-ToggleButton.Parent = Frame
-ToggleButton.Position = UDim2.new(0.1, 0, 0.3, 0)
-ToggleButton.Size = UDim2.new(0.8, 0, 0.2, 0)
-ToggleButton.Font = Enum.Font.SourceSansBold
-ToggleButton.Text = "OFF"
-ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-ToggleButton.TextSize = 24
-UICorner:Clone().Parent = ToggleButton
-
-PowerLabel.Parent = Frame
-PowerLabel.BackgroundTransparency = 1
-PowerLabel.Position = UDim2.new(0.1, 0, 0.55, 0)
-PowerLabel.Size = UDim2.new(0.8, 0, 0.15, 0)
-PowerLabel.Font = Enum.Font.SourceSansBold
-PowerLabel.Text = "Fling Power: 10000"
-PowerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-PowerLabel.TextSize = 18
-
-PowerBar.Parent = Frame
-PowerBar.Position = UDim2.new(0.1, 0, 0.7, 0)
-PowerBar.Size = UDim2.new(0.8, 0, 0.1, 0)
-PowerBar.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-UICorner:Clone().Parent = PowerBar
-PowerSlider.Parent = PowerBar
-PowerSlider.Size = UDim2.new(0.1, 0, 1, 0)
-PowerSlider.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-UICorner:Clone().Parent = PowerSlider
-
-HideButton.Parent = ScreenGui
-HideButton.Position = UDim2.new(0.05, 0, 0.9, 0)
-HideButton.Size = UDim2.new(0, 50, 0, 30)
-HideButton.Font = Enum.Font.SourceSansBold
-HideButton.Text = "👁"
-HideButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-HideButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-UICorner:Clone().Parent = HideButton
-
-ToggleButton.MouseButton1Click:Connect(function()
-    hiddenfling = not hiddenfling
-    if hiddenfling then
-        ToggleButton.Text = "ON"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-    else
-        ToggleButton.Text = "OFF"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-        flingTargetPlayer = nil
-    end
-end)
-
-HideButton.MouseButton1Click:Connect(function()
-    Frame.Visible = not Frame.Visible
-    if Frame.Visible then
-        HideButton.Text = "👁"
-    else
-        HideButton.Text = "👀"
-    end
-end)
-
-PowerSlider.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-    end
-end)
-
-PowerSlider.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local mousePos = input.Position.X
-        local barPos = PowerBar.AbsolutePosition.X
-        local barSize = PowerBar.AbsoluteSize.X
-        local newPos = math.clamp((mousePos - barPos) / barSize, 0, 1)
-        
-        PowerSlider.Position = UDim2.new(newPos, 0, 0, 0)
-        flingPower = math.floor(newPos * 50000) + 5000
-        PowerLabel.Text = "Fling Power: " .. flingPower
-    end
-end)
 
 if not ReplicatedStorage:FindFirstChild("juisdfj0i32i0eidsuf0iok") then
     local detection = Instance.new("Decal")
@@ -283,8 +167,7 @@ local SIGNALS = {
     ["507770056"] = "feinvis",
     ["507770057"] = "fespeed",
     ["507770058"] = "togglestand",
-    ["507770060"] = "popup_image",
-    ["507770061"] = "throw_space"
+    ["507770095"] = "throw_space"
 }
 
 local function updateStatus(text, color)
@@ -339,41 +222,12 @@ local function triggerJumpscare()
     sc:Destroy()
 end
 
-local function triggerPopup()
-    local sc = Instance.new("ScreenGui")
-    sc.Name = "PopupGUI"
-    sc.Parent = LocalPlayer.PlayerGui
-    sc.IgnoreGuiInset = true
-    sc.ResetOnSpawn = false
-    sc.DisplayOrder = 100
-    
-    local img = Instance.new("ImageLabel")
-    img.Parent = sc
-    img.Size = UDim2.new(1,0,1,0)
-    img.Image = "rbxassetid://10776847027"
-    img.BackgroundTransparency = 1
-    img.ScaleType = Enum.ScaleType.Fit
-    img.Visible = true
-    img.ZIndex = 100
-    
-    local snd = Instance.new("Sound")
-    snd.Parent = sc
-    snd.SoundId = "rbxassetid://12221967"
-    snd.Volume = 3
-    snd.PlayOnRemove = true
-    snd:Play()
-    
-    task.delay(5, function()
-        sc:Destroy()
-    end)
-end
-
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
     Name = "Venus Controller",
     LoadingTitle = "Venus Control Logic",
-    LoadingSubtitle = "weird controls ngl",
+    LoadingSubtitle = "weird controls",
     Theme = "AmberGlow",
     ConfigurationSaving = {
         Enabled = true,
@@ -615,8 +469,6 @@ local function executeCommand(cmd)
         isBusy = false
     elseif cmd == "jumpscare" then
         triggerJumpscare()
-    elseif cmd == "popup_image" then
-        triggerPopup()
     elseif cmd == "fling_self" then
         isBusy = true
         hiddenfling = true
@@ -629,14 +481,10 @@ local function executeCommand(cmd)
         if nearest then
             flingTargetPlayer = nearest
             hiddenfling = true
-            ToggleButton.Text = "ON"
-            ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
             Notify("Flinging", "Target: " .. nearest.Name, 3)
             task.wait(3)
             hiddenfling = false
             flingTargetPlayer = nil
-            ToggleButton.Text = "OFF"
-            ToggleButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
         end
         isBusy = false
     elseif cmd == "stand" then
@@ -666,8 +514,6 @@ local function executeCommand(cmd)
         ghostEnabled = false
         standEnabled = true
         flingTargetPlayer = nil
-        ToggleButton.Text = "OFF"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
         if signalConnection then signalConnection:Disconnect() signalConnection = nil end
         if standPlatform then standPlatform:Destroy() standPlatform = nil end
         updateStatus("STATUS: FREE", Color3.fromRGB(100, 255, 100))
@@ -896,57 +742,44 @@ local RemoteTab = Window:CreateTab("Control Others", "crown")
 RemoteTab:CreateLabel("Use these buttons to control your victim.")
 
 RemoteTab:CreateSection("Remote Movement Control")
-RemoteTab:CreateButton({
-    Name = "Move Control (WASD Pilot)",
-    Callback = function()
-        pcall(function()
-            remoteControlEnabled = not remoteControlEnabled
-            if remoteControlEnabled then
-                broadcastSignal("507771019") 
-                
-                if LocalPlayer.Character then
-                    for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-                        if part:IsA("BasePart") or part:IsA("Decal") then
-                            part.Transparency = 1
-                            part.CanCollide = false
-                        end
+RemoteTab:CreateToggle({
+    Name = "Pilot (Click to Move)",
+    CurrentValue = false,
+    Callback = function(Value)
+        pilotClickToMove = Value
+        if pilotClickToMove then
+            broadcastSignal("507771019") 
+            if LocalPlayer.Character then
+                for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                    if part:IsA("BasePart") or part:IsA("Decal") then
+                        part.Transparency = 1
+                        part.CanCollide = false
                     end
                 end
-                
-                Notify("Pilot ON", "You are invisible. Move to guide the victim.", 3)
-            else
-                if LocalPlayer.Character then
-                    for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-                        if part:IsA("BasePart") or part:IsA("Decal") then
-                            part.Transparency = 0
-                            part.CanCollide = true
-                        end
-                    end
-                end
-                Notify("Pilot OFF", "Restored.", 3)
             end
-        end)
-    end
-})
-
-RemoteTab:CreateSection("Communication")
-local customMsgText = ""
-RemoteTab:CreateInput({
-    Name = "Custom Message",
-    PlaceholderText = "Type message...",
-    RemoveTextAfterFocusLost = false,
-    Callback = function(Text)
-        customMsgText = Text
+            
+            if pilotConnection then pilotConnection:Disconnect() end
+            pilotConnection = Mouse.Button1Down:Connect(function()
+                if pilotClickToMove and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                    LocalPlayer.Character.Humanoid:MoveTo(Mouse.Hit.Position)
+                end
+            end)
+            
+            Notify("Pilot Mode", "Click anywhere to walk there. Victim will follow.", 3)
+        else
+            if pilotConnection then pilotConnection:Disconnect() pilotConnection = nil end
+            if LocalPlayer.Character then
+                for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                    if part:IsA("BasePart") or part:IsA("Decal") then
+                        part.Transparency = 0
+                        part.CanCollide = true
+                    end
+                end
+            end
+            Notify("Pilot Mode", "Disabled.", 3)
+        end
     end,
 })
-RemoteTab:CreateButton({
-    Name = "Send Message (Randomized)",
-    Callback = function()
-        Notify("Sent", "Triggering distress message.", 2)
-        broadcastSignal("507770051") 
-    end
-})
-RemoteTab:CreateButton({ Name = "Show POPUP Image (5s)", Callback = function() broadcastSignal("507770060") end }) 
 
 RemoteTab:CreateSection("Movement")
 RemoteTab:CreateButton({ Name = "Bring Controlled", Callback = function() broadcastSignal("507770239") end })
@@ -961,7 +794,7 @@ RemoteTab:CreateButton({ Name = "Unfreeze", Callback = function() broadcastSigna
 RemoteTab:CreateButton({ Name = "Float Up", Callback = function() broadcastSignal("507770033") end })
 RemoteTab:CreateButton({ Name = "Sink Floor", Callback = function() broadcastSignal("507770034") end })
 RemoteTab:CreateButton({ Name = "Rocket Launch", Callback = function() broadcastSignal("507770038") end })
-RemoteTab:CreateButton({ Name = "Throw to Space", Callback = function() broadcastSignal("507770061") end })
+RemoteTab:CreateButton({ Name = "Throw to Space", Callback = function() broadcastSignal("507770095") end })
 
 RemoteTab:CreateSection("Visuals & Effects")
 RemoteTab:CreateButton({ Name = "Blind Him", Callback = function() broadcastSignal("507765000") end })
@@ -1010,7 +843,8 @@ RemoteTab:CreateButton({ Name = "Sober", Callback = function() broadcastSignal("
 RemoteTab:CreateButton({ Name = "Fake Lag", Callback = function() broadcastSignal("507770049") end })
 RemoteTab:CreateButton({ Name = "Anti-Sit (Forced Jump)", Callback = function() broadcastSignal("507770050") end })
 RemoteTab:CreateButton({ Name = "Confuse Inputs (Fixed)", Callback = function() broadcastSignal("507770054") end })
-RemoteTab:CreateButton({ Name = "Fix Inputs", Callback = function() broadcastSignal("507770055") end })
+RemoteTab:CreateButton({ Name = "Clarity (Fix Inputs)", Callback = function() broadcastSignal("507770055") end })
+RemoteTab:CreateButton({ Name = "Send Randomized Msg", Callback = function() broadcastSignal("507770051") end })
 
 RemoteTab:CreateSection("FE Exploits")
 RemoteTab:CreateLabel("Credit: xXHaNdEROXx TG@MK14CFG")
@@ -1019,13 +853,43 @@ RemoteTab:CreateButton({
     Callback = function() broadcastSignal("507770056") end 
 })
 RemoteTab:CreateButton({ 
-    Name = "Tggle Speed Boost (on Controlled)", 
+    Name = "Toggle Speed Boost (on Controlled)", 
     Callback = function() broadcastSignal("507770057") end 
+})
+
+local FlingTab = Window:CreateTab("Fling", "bomb")
+FlingTab:CreateToggle({
+    Name = "Toggle Fling Loop",
+    CurrentValue = false,
+    Callback = function(Value)
+        hiddenfling = Value
+        if not hiddenfling then
+            flingTargetPlayer = nil
+        end
+    end,
+})
+
+FlingTab:CreateSlider({
+    Name = "Fling Power",
+    Range = {1000, 50000},
+    Increment = 1000,
+    Suffix = "Force",
+    CurrentValue = 10000,
+    Callback = function(Value)
+        flingPower = Value
+    end,
 })
 
 local MiscTab = Window:CreateTab("Settings", "cog")
 MiscTab:CreateButton({
-    Name = "Destroy The UI",
+    Name = "Toggle Status Bar (Hide/Show)",
+    Callback = function()
+        StatusGui.Enabled = not StatusGui.Enabled
+        Notify("UI", "Status Bar Visibility: " .. tostring(StatusGui.Enabled), 2)
+    end,
+})
+MiscTab:CreateButton({
+    Name = "Destroy The Ui",
     Callback = function()
         Rayfield:Destroy()
     end,
