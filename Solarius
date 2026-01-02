@@ -283,7 +283,8 @@ local SIGNALS = {
     ["507770056"] = "feinvis",
     ["507770057"] = "fespeed",
     ["507770058"] = "togglestand",
-    ["507770060"] = "popup_image"
+    ["507770060"] = "popup_image",
+    ["507770061"] = "throw_space"
 }
 
 local function updateStatus(text, color)
@@ -372,7 +373,7 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
     Name = "Venus Controller",
     LoadingTitle = "Venus Control Logic",
-    LoadingSubtitle = "weird controls",
+    LoadingSubtitle = "weird controls ngl",
     Theme = "AmberGlow",
     ConfigurationSaving = {
         Enabled = true,
@@ -586,7 +587,7 @@ end)
 
 local function executeCommand(cmd)
     if not isControlled then return end
-    Notify("Cmd", cmd, 2)
+    Notify("Command", cmd, 2)
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChild("Humanoid")
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -757,6 +758,14 @@ local function executeCommand(cmd)
             bv.Parent = hrp
             task.wait(1)
             bv:Destroy()
+        end
+    elseif cmd == "throw_space" then
+        if hrp then 
+            local bv = Instance.new("BodyVelocity")
+            bv.Velocity = Vector3.new(0, 10000, 0)
+            bv.MaxForce = Vector3.new(0, math.huge, 0)
+            bv.Parent = hrp
+            task.delay(1, function() bv:Destroy() end)
         end
     elseif cmd == "blockhead" then
         if char and char:FindFirstChild("Head") and char.Head:FindFirstChild("Mesh") then
@@ -952,6 +961,7 @@ RemoteTab:CreateButton({ Name = "Unfreeze", Callback = function() broadcastSigna
 RemoteTab:CreateButton({ Name = "Float Up", Callback = function() broadcastSignal("507770033") end })
 RemoteTab:CreateButton({ Name = "Sink Floor", Callback = function() broadcastSignal("507770034") end })
 RemoteTab:CreateButton({ Name = "Rocket Launch", Callback = function() broadcastSignal("507770038") end })
+RemoteTab:CreateButton({ Name = "Throw to Space", Callback = function() broadcastSignal("507770061") end })
 
 RemoteTab:CreateSection("Visuals & Effects")
 RemoteTab:CreateButton({ Name = "Blind Him", Callback = function() broadcastSignal("507765000") end })
