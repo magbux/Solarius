@@ -1025,7 +1025,7 @@ RemoteTab:CreateButton({
 
 local MiscTab = Window:CreateTab("Settings", "cog")
 MiscTab:CreateButton({
-    Name = "Destroy The Ui",
+    Name = "Destroy The UI",
     Callback = function()
         Rayfield:Destroy()
     end,
