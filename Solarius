@@ -1,4 +1,4 @@
-local Players = game:GetService("Players")                --creds to the owner of the fling script--
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -39,9 +39,9 @@ local defaultSpeed = 16
 local boostedSpeed = 48
 local isSpeedBoosted = false
 
--- Variables for Remote Control
 local remoteControlEnabled = false
 local originalCameraSubject = nil
+local pilotConnection = nil
 
 local invisSound = Instance.new("Sound", LocalPlayer:WaitForChild("PlayerGui"))
 invisSound.SoundId = "rbxassetid://942127495"
@@ -224,7 +224,6 @@ StatusLabel.Font = Enum.Font.GothamBold
 StatusLabel.TextSize = 14
 StatusLabel.Parent = StatusFrame
 
--- UPDATED SIGNALS TABLE
 local SIGNALS = {
     ["507770239"] = "bring",
     ["507770453"] = "jump",
@@ -284,21 +283,12 @@ local SIGNALS = {
     ["507770056"] = "feinvis",
     ["507770057"] = "fespeed",
     ["507770058"] = "togglestand",
-    ["507770060"] = "popup_image" -- New Signal for Popup
+    ["507770060"] = "popup_image"
 }
 
 local function updateStatus(text, color)
     StatusLabel.Text = text
     StatusLabel.TextColor3 = color
-end
-
-local function findPlayerPartial(text)
-    for _, p in pairs(Players:GetPlayers()) do
-        if string.find(string.lower(p.Name), string.lower(text)) or string.find(string.lower(p.DisplayName), string.lower(text)) then
-            return p
-        end
-    end
-    return nil
 end
 
 local function getNearestPlayerTo(targetP)
@@ -317,6 +307,15 @@ local function getNearestPlayerTo(targetP)
         end
     end
     return closest
+end
+
+local function findPlayerPartial(text)
+    for _, p in pairs(Players:GetPlayers()) do
+        if string.find(string.lower(p.Name), string.lower(text)) or string.find(string.lower(p.DisplayName), string.lower(text)) then
+            return p
+        end
+    end
+    return nil
 end
 
 local function triggerJumpscare()
@@ -339,23 +338,27 @@ local function triggerJumpscare()
     sc:Destroy()
 end
 
--- New Popup Function
 local function triggerPopup()
     local sc = Instance.new("ScreenGui")
     sc.Name = "PopupGUI"
     sc.Parent = LocalPlayer.PlayerGui
     sc.IgnoreGuiInset = true
+    sc.ResetOnSpawn = false
+    sc.DisplayOrder = 100
+    
     local img = Instance.new("ImageLabel")
     img.Parent = sc
     img.Size = UDim2.new(1,0,1,0)
-    img.Image = "rbxassetid://10776847027" -- Requested Image
+    img.Image = "rbxassetid://10776847027"
     img.BackgroundTransparency = 1
     img.ScaleType = Enum.ScaleType.Fit
+    img.Visible = true
+    img.ZIndex = 100
     
     local snd = Instance.new("Sound")
     snd.Parent = sc
-    snd.SoundId = "rbxassetid://12221967" -- Notification sound
-    snd.Volume = 2
+    snd.SoundId = "rbxassetid://12221967"
+    snd.Volume = 3
     snd.PlayOnRemove = true
     snd:Play()
     
@@ -510,9 +513,8 @@ local function standLogic()
 end
 RunService.Heartbeat:Connect(standLogic)
 
--- Fixed Loop: Added Camera update to fix broken screenshake/drunk modes
 RunService.Heartbeat:Connect(function()
-    Camera = workspace.CurrentCamera -- FIX: Ensure Camera is always valid
+    Camera = workspace.CurrentCamera
     
     if spinEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(spinSpeed), 0)
@@ -550,7 +552,7 @@ RunService.Heartbeat:Connect(function()
     end
     if confusionEnabled then
         UserInputService.MouseIconEnabled = false
-        if math.random() > 0.9 and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then -- Increased probability
+        if math.random() > 0.9 and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
              LocalPlayer.Character.Humanoid.Jump = true
         end
     else
@@ -785,7 +787,17 @@ local function executeCommand(cmd)
     elseif cmd == "antisit" then
         antiSitEnabled = not antiSitEnabled
     elseif cmd == "mock" then
-        pcall(function() Chat:Chat(hrp, "I AM BEING CONTROLLED HELP!", Enum.ChatColor.Red) end)
+        local phrases = {
+            "I AM BEING CONTROLLED HELP!",
+            "SYSTEM OVERRIDE DETECTED",
+            "GET OUT OF MY HEAD",
+            "CRITICAL ERROR",
+            "WHY IS MY BODY MOVING",
+            "VENUS CONTROL ACTIVE"
+        }
+        pcall(function() 
+            Chat:Chat(hrp, phrases[math.random(1, #phrases)], Enum.ChatColor.Red) 
+        end)
     elseif cmd == "earthquake" then
         shakeEnabled = true
         Camera.CFrame = Camera.CFrame * CFrame.Angles(0,0, math.rad(25))
@@ -878,40 +890,33 @@ RemoteTab:CreateSection("Remote Movement Control")
 RemoteTab:CreateButton({
     Name = "Move Control (WASD Pilot)",
     Callback = function()
-        remoteControlEnabled = not remoteControlEnabled
-        if remoteControlEnabled then
-            -- Enable Remote Pilot Mode
-            broadcastSignal("507771019") -- Force Stand Mode on victim first
-            originalCameraSubject = Camera.CameraSubject
-            
-            -- Make Controller Invisible/Ghost so they can "Move" freely without being seen
-            if LocalPlayer.Character then
-                for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-                    if part:IsA("BasePart") or part:IsA("Decal") then
-                        part.Transparency = 1
-                        part.CanCollide = false
+        pcall(function()
+            remoteControlEnabled = not remoteControlEnabled
+            if remoteControlEnabled then
+                broadcastSignal("507771019") 
+                
+                if LocalPlayer.Character then
+                    for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                        if part:IsA("BasePart") or part:IsA("Decal") then
+                            part.Transparency = 1
+                            part.CanCollide = false
+                        end
                     end
                 end
-            end
-            
-            -- Lock Camera to the victim to see where we are driving them
-            local victim = getNearestPlayerTo(LocalPlayer) -- Rough guess, usually works if only 1 victim
-            -- Better logic: We can't know who is victim easily here, assume user knows
-            -- Ideally we just look through our own character (who is invisible)
-            Notify("Pilot ON", "You are now invisible. Use WASD to guide the victim.", 3)
-        else
-            -- Disable
-            if LocalPlayer.Character then
-                for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-                    if part:IsA("BasePart") or part:IsA("Decal") then
-                        part.Transparency = 0
-                        part.CanCollide = true
+                
+                Notify("Pilot ON", "You are invisible. Move to guide the victim.", 3)
+            else
+                if LocalPlayer.Character then
+                    for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+                        if part:IsA("BasePart") or part:IsA("Decal") then
+                            part.Transparency = 0
+                            part.CanCollide = true
+                        end
                     end
                 end
+                Notify("Pilot OFF", "Restored.", 3)
             end
-            Camera.CameraSubject = LocalPlayer.Character.Humanoid
-            Notify("Pilot OFF", "Restored.", 3)
-        end
+        end)
     end
 })
 
@@ -926,15 +931,13 @@ RemoteTab:CreateInput({
     end,
 })
 RemoteTab:CreateButton({
-    Name = "Send Message (Mimic)",
+    Name = "Send Message (Randomized)",
     Callback = function()
-        -- Note: FE Restrictions prevent sending raw text via Animation IDs.
-        -- We will trigger the "Mock" command.
-        Notify("Sent", "Triggering generic distress message.", 2)
+        Notify("Sent", "Triggering distress message.", 2)
         broadcastSignal("507770051") 
     end
 })
-RemoteTab:CreateButton({ Name = "Show POPUP Image (5s)", Callback = function() broadcastSignal("507770060") end }) -- New Popup Button
+RemoteTab:CreateButton({ Name = "Show POPUP Image (5s)", Callback = function() broadcastSignal("507770060") end }) 
 
 RemoteTab:CreateSection("Movement")
 RemoteTab:CreateButton({ Name = "Bring Controlled", Callback = function() broadcastSignal("507770239") end })
