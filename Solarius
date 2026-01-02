@@ -775,9 +775,7 @@ MainTab:CreateButton({
 })
 
 local RemoteTab = Window:CreateTab("Control Others", "crown")
-RemoteTab:CreateLabel("Use these buttons to control your victim.")
-
-RemoteTab:CreateSection("Remote Movement Control")
+RemoteTab:CreateLabel("Use these buttons to control your victim some may not work.")
 
 RemoteTab:CreateSection("Movement")
 RemoteTab:CreateButton({ Name = "Bring Controlled", Callback = function() broadcastSignal("507770239") end })
