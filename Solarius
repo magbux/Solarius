@@ -778,54 +778,6 @@ local RemoteTab = Window:CreateTab("Control Others", "crown")
 RemoteTab:CreateLabel("Use these buttons to control your victim.")
 
 RemoteTab:CreateSection("Remote Movement Control")
-RemoteTab:CreateToggle({
-    Name = "Pilot (TP Tool + Click)",
-    CurrentValue = false,
-    Callback = function(Value)
-        pilotMode = Value
-        if pilotMode then
-            broadcastSignal("507770062") 
-            if LocalPlayer.Character then
-                for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-                    if part:IsA("BasePart") or part:IsA("Decal") then
-                        part.Transparency = 1
-                        part.CanCollide = false
-                    end
-                end
-            end
-            
-            if not pilotTool then
-                pilotTool = Instance.new("Tool")
-                pilotTool.Name = "Teleport Tool"
-                pilotTool.RequiresHandle = false
-                pilotTool.Parent = LocalPlayer.Backpack
-                
-                pilotConnection = pilotTool.Activated:Connect(function()
-                     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(Mouse.Hit.Position + Vector3.new(0, 3, 0))
-                     end
-                end)
-                
-                LocalPlayer.Character.Humanoid:EquipTool(pilotTool)
-            end
-            
-            Notify("Pilot Mode", "TP Tool Equipped. Click to TP. Alt follows.", 3)
-        else
-            if pilotConnection then pilotConnection:Disconnect() pilotConnection = nil end
-            if pilotTool then pilotTool:Destroy() pilotTool = nil end
-            
-            if LocalPlayer.Character then
-                for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-                    if part:IsA("BasePart") or part:IsA("Decal") then
-                        part.Transparency = 0
-                        part.CanCollide = true
-                    end
-                end
-            end
-            Notify("Pilot Mode", "Disabled.", 3)
-        end
-    end,
-})
 
 RemoteTab:CreateSection("Movement")
 RemoteTab:CreateButton({ Name = "Bring Controlled", Callback = function() broadcastSignal("507770239") end })
