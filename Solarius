@@ -1019,7 +1019,7 @@ RemoteTab:CreateButton({
     Callback = function() broadcastSignal("507770056") end 
 })
 RemoteTab:CreateButton({ 
-    Name = "Toggle Speed Boost (on Controlled)", 
+    Name = "Tggle Speed Boost (on Controlled)", 
     Callback = function() broadcastSignal("507770057") end 
 })
 
