@@ -7,6 +7,7 @@ local Lighting = game:GetService("Lighting")
 local Chat = game:GetService("Chat")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
+local Mouse = LocalPlayer:GetMouse()
 
 local hiddenfling = false
 local flingPower = 10000
@@ -38,7 +39,8 @@ local defaultSpeed = 16
 local boostedSpeed = 48
 local isSpeedBoosted = false
 
-local pilotClickToMove = false
+local pilotMode = false
+local pilotTool = nil
 local pilotConnection = nil
 
 local invisSound = Instance.new("Sound", LocalPlayer:WaitForChild("PlayerGui"))
@@ -167,7 +169,14 @@ local SIGNALS = {
     ["507770057"] = "fespeed",
     ["507770058"] = "togglestand",
     ["507770062"] = "pilot_mode",
-    ["507770095"] = "throw_space"
+    ["507770095"] = "throw_space",
+    ["507770100"] = "dance1",
+    ["507770101"] = "dance2",
+    ["507770102"] = "dance3",
+    ["507770103"] = "wave",
+    ["507770104"] = "cheer",
+    ["507770105"] = "laugh",
+    ["507770106"] = "point"
 }
 
 local function updateStatus(text, color)
@@ -478,13 +487,26 @@ local function executeCommand(cmd)
     elseif cmd == "fling_nearest" then
         isBusy = true
         local nearest = getNearestPlayerTo(controllerPlayer)
-        if nearest then
+        if nearest and nearest.Character and nearest.Character:FindFirstChild("HumanoidRootPart") then
+            local oldPower = flingPower
+            flingPower = 50000 
             flingTargetPlayer = nearest
             hiddenfling = true
             Notify("Flinging", "Target: " .. nearest.Name, 3)
-            task.wait(3)
+            
+            local t = 0
+            while t < 30 and flingTargetPlayer do 
+                RunService.Heartbeat:Wait()
+                t = t + 1
+            end
+            
             hiddenfling = false
             flingTargetPlayer = nil
+            flingPower = oldPower
+            
+            if char and controllerPlayer and controllerPlayer.Character then
+                hrp.CFrame = controllerPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,2.5)
+            end
         end
         isBusy = false
     elseif cmd == "stand" or cmd == "pilot_mode" then
@@ -664,6 +686,20 @@ local function executeCommand(cmd)
         toggleInvisLogic()
     elseif cmd == "fespeed" then
         toggleSpeedLogic()
+    elseif cmd == "dance1" then
+        Chat:Chat(char, "/e dance")
+    elseif cmd == "dance2" then
+        Chat:Chat(char, "/e dance2")
+    elseif cmd == "dance3" then
+        Chat:Chat(char, "/e dance3")
+    elseif cmd == "wave" then
+        Chat:Chat(char, "/e wave")
+    elseif cmd == "cheer" then
+        Chat:Chat(char, "/e cheer")
+    elseif cmd == "laugh" then
+        Chat:Chat(char, "/e laugh")
+    elseif cmd == "point" then
+        Chat:Chat(char, "/e point")
     end
 end
 
@@ -743,11 +779,11 @@ RemoteTab:CreateLabel("Use these buttons to control your victim.")
 
 RemoteTab:CreateSection("Remote Movement Control")
 RemoteTab:CreateToggle({
-    Name = "Pilot (Click to Move)",
+    Name = "Pilot (TP Tool + Click)",
     CurrentValue = false,
     Callback = function(Value)
-        pilotClickToMove = Value
-        if pilotClickToMove then
+        pilotMode = Value
+        if pilotMode then
             broadcastSignal("507770062") 
             if LocalPlayer.Character then
                 for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
@@ -758,26 +794,26 @@ RemoteTab:CreateToggle({
                 end
             end
             
-            if pilotConnection then pilotConnection:Disconnect() end
-            pilotConnection = UserInputService.InputBegan:Connect(function(input, gpe)
-                if gpe then return end
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    local mouseLocation = UserInputService:GetMouseLocation()
-                    local ray = Camera:ViewportPointToRay(mouseLocation.X, mouseLocation.Y)
-                    local params = RaycastParams.new()
-                    params.FilterDescendantsInstances = {LocalPlayer.Character}
-                    params.FilterType = Enum.RaycastFilterType.Exclude
-                    
-                    local result = workspace:Raycast(ray.Origin, ray.Direction * 1000, params)
-                    if result and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-                        LocalPlayer.Character.Humanoid:MoveTo(result.Position)
-                    end
-                end
-            end)
+            if not pilotTool then
+                pilotTool = Instance.new("Tool")
+                pilotTool.Name = "Teleport Tool"
+                pilotTool.RequiresHandle = false
+                pilotTool.Parent = LocalPlayer.Backpack
+                
+                pilotConnection = pilotTool.Activated:Connect(function()
+                     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(Mouse.Hit.Position + Vector3.new(0, 3, 0))
+                     end
+                end)
+                
+                LocalPlayer.Character.Humanoid:EquipTool(pilotTool)
+            end
             
-            Notify("Pilot Mode", "Click anywhere to walk there. Victim will follow.", 3)
+            Notify("Pilot Mode", "TP Tool Equipped. Click to TP. Alt follows.", 3)
         else
             if pilotConnection then pilotConnection:Disconnect() pilotConnection = nil end
+            if pilotTool then pilotTool:Destroy() pilotTool = nil end
+            
             if LocalPlayer.Character then
                 for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
                     if part:IsA("BasePart") or part:IsA("Decal") then
@@ -805,6 +841,15 @@ RemoteTab:CreateButton({ Name = "Float Up", Callback = function() broadcastSigna
 RemoteTab:CreateButton({ Name = "Sink Floor", Callback = function() broadcastSignal("507770034") end })
 RemoteTab:CreateButton({ Name = "Rocket Launch", Callback = function() broadcastSignal("507770038") end })
 RemoteTab:CreateButton({ Name = "Throw to Space", Callback = function() broadcastSignal("507770095") end })
+
+RemoteTab:CreateSection("Emotes")
+RemoteTab:CreateButton({ Name = "/e dance", Callback = function() broadcastSignal("507770100") end })
+RemoteTab:CreateButton({ Name = "/e dance2", Callback = function() broadcastSignal("507770101") end })
+RemoteTab:CreateButton({ Name = "/e dance3", Callback = function() broadcastSignal("507770102") end })
+RemoteTab:CreateButton({ Name = "/e wave", Callback = function() broadcastSignal("507770103") end })
+RemoteTab:CreateButton({ Name = "/e cheer", Callback = function() broadcastSignal("507770104") end })
+RemoteTab:CreateButton({ Name = "/e laugh", Callback = function() broadcastSignal("507770105") end })
+RemoteTab:CreateButton({ Name = "/e point", Callback = function() broadcastSignal("507770106") end })
 
 RemoteTab:CreateSection("Visuals & Effects")
 RemoteTab:CreateButton({ Name = "Blind Him", Callback = function() broadcastSignal("507765000") end })
