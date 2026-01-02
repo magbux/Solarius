@@ -32,6 +32,7 @@ local isControlled = false
 local standPlatform = nil
 local isBusy = false
 local signalConnection = nil
+local standEnabled = true -- New variable for toggling stand follow
 
 local invis_on = false
 local defaultSpeed = 16
@@ -275,8 +276,9 @@ local SIGNALS = {
     ["507770053"] = "normalfov",
     ["507770054"] = "confuse",
     ["507770055"] = "clarity",
-    ["507770056"] = "feinvis",      -- new: toggle FE invis on controlled yippe
-    ["507770057"] = "fespeed"       -- new: toggle speed boost on controlled
+    ["507770056"] = "feinvis",
+    ["507770057"] = "fespeed",
+    ["507770058"] = "togglestand" -- New signal for toggling stand follow/unfollow
 }
 
 local function updateStatus(text, color)
@@ -421,7 +423,8 @@ end)
 local function standLogic()
     if isControlled and controllerPlayer and controllerPlayer.Character and controllerPlayer.Character:FindFirstChild("HumanoidRootPart") then
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            if not isBusy and not orbitEnabled and not hiddenfling then
+            -- Modified logic to include standEnabled check
+            if not isBusy and not orbitEnabled and not hiddenfling and standEnabled then
                 local char = LocalPlayer.Character
                 local tRoot = controllerPlayer.Character.HumanoidRootPart
                 local cRoot = char.HumanoidRootPart
@@ -447,7 +450,7 @@ local function standLogic()
                 if dogMode then
                     goalCF = tRoot.CFrame * CFrame.new(2, -2, 2)
                 end
-                
+
                 if standPlatform then
                     standPlatform.CFrame = goalCF * CFrame.new(0, -3, 0)
                 end
@@ -459,8 +462,8 @@ local function standLogic()
                 local cRoot = char.HumanoidRootPart
                 local hum = char:FindFirstChild("Humanoid")
                 if hum then
-                   hum:ChangeState(Enum.HumanoidStateType.Physics)
-                 end
+                   hum:ChangeState(Enum.HumanoidStateType.Physics) 
+                end
                 local angle = tick() * 3
                 local radius = 8
                 local offset = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
@@ -514,6 +517,7 @@ RunService.Heartbeat:Connect(function()
     end
     if confusionEnabled then
         UserInputService.MouseIconEnabled = false
+        local randomKey = Enum.KeyCode.Space
         if math.random() > 0.95 and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
              LocalPlayer.Character.Humanoid.Jump = true
         end
@@ -552,7 +556,7 @@ local function executeCommand(cmd)
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChild("Humanoid")
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    
+
     if cmd == "jump" then
         if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
     elseif cmd == "bring" then
@@ -576,6 +580,12 @@ local function executeCommand(cmd)
         isBusy = false
     elseif cmd == "jumpscare" then
         triggerJumpscare()
+    elseif cmd == "fling_self" then
+        isBusy = true
+        hiddenfling = true
+        task.wait(2)
+        hiddenfling = false
+        isBusy = false
     elseif cmd == "fling_nearest" then
         isBusy = true
         local nearest = getNearestPlayerTo(controllerPlayer)
@@ -596,6 +606,13 @@ local function executeCommand(cmd)
         isBusy = false
         orbitEnabled = false
         dogMode = false
+        standEnabled = true -- reset stand to on when stand command is sent
+    elseif cmd == "togglestand" then
+        standEnabled = not standEnabled
+        if not standEnabled and standPlatform then
+            standPlatform.CFrame = CFrame.new(0, -500, 0)
+        end
+        Notify("Stand Toggle", "Following: " .. tostring(standEnabled), 2)
     elseif cmd == "free" then
         isControlled = false
         controllerPlayer = nil
@@ -610,6 +627,7 @@ local function executeCommand(cmd)
         fakeLagEnabled = false
         confusionEnabled = false
         ghostEnabled = false
+        standEnabled = true
         flingTargetPlayer = nil
         ToggleButton.Text = "OFF"
         ToggleButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
@@ -696,8 +714,8 @@ local function executeCommand(cmd)
             hrp.CFrame = CFrame.new(hrp.Position, controllerPlayer.Character.HumanoidRootPart.Position)
         end
     elseif cmd == "rocket" then
-        if hrp then
-             local bv = Instance.new("BodyVelocity")
+        if hrp then 
+            local bv = Instance.new("BodyVelocity")
             bv.Velocity = Vector3.new(0, 500, 0)
             bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
             bv.Parent = hrp
@@ -825,6 +843,7 @@ RemoteTab:CreateLabel("somethings may have confusing names.")
 RemoteTab:CreateSection("Movement")
 RemoteTab:CreateButton({ Name = "Bring Controlled", Callback = function() broadcastSignal("507770239") end })
 RemoteTab:CreateButton({ Name = "Stand Mode (Reset)", Callback = function() broadcastSignal("507771019") end })
+RemoteTab:CreateButton({ Name = "Toggle Stand Follow", Callback = function() broadcastSignal("507770058") end }) -- Added button here follow
 RemoteTab:CreateButton({ Name = "Orbit Mode", Callback = function() broadcastSignal("507770015") end })
 RemoteTab:CreateButton({ Name = "Jump", Callback = function() broadcastSignal("507770453") end })
 RemoteTab:CreateButton({ Name = "Sit", Callback = function() broadcastSignal("507770013") end })
