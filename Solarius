@@ -894,7 +894,7 @@ MiscTab:CreateButton({
     end,
 })
 MiscTab:CreateButton({
-    Name = "Destroy The Ui",
+    Name = "Destroy The UI",
     Callback = function()
         Rayfield:Destroy()
     end,
