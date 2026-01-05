@@ -34,20 +34,11 @@ local isBusy = false
 local signalConnection = nil
 local standEnabled = true 
 
-local surfMode = false
-local masterSurfEnabled = false
-local masterFloatVel = nil
-
 local invis_on = false
 local defaultSpeed = 16
 local boostedSpeed = 48
 local isSpeedBoosted = false
 
-local pilotMode = false
-local pilotTool = nil
-local pilotConnection = nil
-
--- Energize Variables
 local energizeTrack = nil
 local energizeLoop = nil
 
@@ -176,9 +167,7 @@ local SIGNALS = {
     ["507770056"] = "feinvis",
     ["507770057"] = "fespeed",
     ["507770058"] = "togglestand",
-    ["507770062"] = "pilot_mode",
     ["507770095"] = "throw_space",
-    -- Energize Animations
     ["507770200"] = "stop_energize",
     ["507770201"] = "e_glitchlevitate",
     ["507770202"] = "e_moondance",
@@ -252,7 +241,7 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
     Name = "Solarius Controller",
-    LoadingTitle = "weird control logic",
+    LoadingTitle = "Solarius Control Logic",
     LoadingSubtitle = "weird controls",
     Theme = "AmberGlow",
     ConfigurationSaving = {
@@ -370,20 +359,6 @@ local function standLogic()
                 end
                 cRoot.CFrame = cRoot.CFrame:Lerp(goalCF, 0.15)
                 cRoot.Velocity = Vector3.zero
-            elseif surfMode and not hiddenfling then
-                local char = LocalPlayer.Character
-                local tRoot = controllerPlayer.Character.HumanoidRootPart
-                local cRoot = char.HumanoidRootPart
-                local hum = char:FindFirstChild("Humanoid")
-                if hum then
-                    hum:ChangeState(Enum.HumanoidStateType.Physics)
-                end
-                
-                -- Surf Logic: Position under master feet
-                local goalCF = tRoot.CFrame * CFrame.new(0, -3.5, 0) * CFrame.Angles(0, math.rad(90), 0)
-                
-                cRoot.CFrame = cRoot.CFrame:Lerp(goalCF, 0.5)
-                cRoot.Velocity = Vector3.zero
             elseif orbitEnabled and not hiddenfling then
                 local char = LocalPlayer.Character
                 local tRoot = controllerPlayer.Character.HumanoidRootPart
@@ -498,11 +473,10 @@ local function playEnergize(id, speed, weight, loopCount, isLoopingLogic)
         energizeTrack = LocalPlayer.Character.Humanoid:LoadAnimation(anim)
         
         if isLoopingLogic then
-            -- Loop logic for animations that dont loop automatically or need constant re-trigger
             energizeLoop = task.spawn(function()
                 while true do
                     if energizeTrack and not energizeTrack.IsPlaying then
-                        energizeTrack:Play(0.1, 1, speed) -- Using speed param as weight or playbackspeed
+                        energizeTrack:Play(0.1, 1, speed) 
                     end
                     task.wait()
                 end
@@ -575,11 +549,10 @@ local function executeCommand(cmd)
             end
         end
         isBusy = false
-    elseif cmd == "stand" or cmd == "pilot_mode" then
+    elseif cmd == "stand" then
         isBusy = false
         orbitEnabled = false
         dogMode = false
-        surfMode = false
         standEnabled = true 
         stopEnergize()
     elseif cmd == "togglestand" then
@@ -603,7 +576,6 @@ local function executeCommand(cmd)
         confusionEnabled = false
         ghostEnabled = false
         standEnabled = true
-        surfMode = false
         flingTargetPlayer = nil
         stopEnergize()
         if signalConnection then signalConnection:Disconnect() signalConnection = nil end
@@ -770,15 +742,6 @@ local function executeCommand(cmd)
         Chat:Chat(char, "/e laugh")
     elseif cmd == "point" then
         Chat:Chat(char, "/e point")
-    elseif cmd == "surf_on" then
-        surfMode = true
-        dogMode = false
-        standEnabled = false
-        if hum then hum.PlatformStand = true end
-    elseif cmd == "surf_off" then
-        surfMode = false
-        standEnabled = true
-        if hum then hum.PlatformStand = false end
     elseif cmd == "stop_energize" then
         stopEnergize()
     elseif cmd == "e_glitchlevitate" then
@@ -885,116 +848,6 @@ MainTab:CreateButton({
 
 local RemoteTab = Window:CreateTab("Control Others", "crown")
 RemoteTab:CreateLabel("Use these buttons to control your victim.")
-
-RemoteTab:CreateSection("Remote Movement Control")
-RemoteTab:CreateToggle({
-    Name = "Pilot (Click to Move)",
-    CurrentValue = false,
-    Callback = function(Value)
-        pilotClickToMove = Value
-        if pilotClickToMove then
-            broadcastSignal("507770062") 
-            if LocalPlayer.Character then
-                for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-                    if part:IsA("BasePart") or part:IsA("Decal") then
-                        part.Transparency = 1
-                        part.CanCollide = false
-                    end
-                end
-            end
-            
-            if pilotConnection then pilotConnection:Disconnect() end
-            pilotConnection = UserInputService.InputBegan:Connect(function(input, gpe)
-                if gpe then return end
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    local mouseLocation = UserInputService:GetMouseLocation()
-                    local ray = Camera:ViewportPointToRay(mouseLocation.X, mouseLocation.Y)
-                    local params = RaycastParams.new()
-                    params.FilterDescendantsInstances = {LocalPlayer.Character}
-                    params.FilterType = Enum.RaycastFilterType.Exclude
-                    
-                    local result = workspace:Raycast(ray.Origin, ray.Direction * 1000, params)
-                    if result and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-                        LocalPlayer.Character.Humanoid:MoveTo(result.Position)
-                    end
-                end
-            end)
-            
-            Notify("Pilot Mode", "Click anywhere to walk there. Victim will follow.", 3)
-        else
-            if pilotConnection then pilotConnection:Disconnect() pilotConnection = nil end
-            if LocalPlayer.Character then
-                for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-                    if part:IsA("BasePart") or part:IsA("Decal") then
-                        part.Transparency = 0
-                        part.CanCollide = true
-                    end
-                end
-            end
-            Notify("Pilot Mode", "Disabled.", 3)
-        end
-    end,
-})
-
-RemoteTab:CreateToggle({
-    Name = "Toggle Surf Mode",
-    CurrentValue = false,
-    Callback = function(Value)
-        masterSurfEnabled = Value
-        if masterSurfEnabled then
-            broadcastSignal("507770095") -- surf_on (oops, using custom logic)
-            -- Actually, let's map commands for Surf
-            -- I'll send specific new IDs for surf
-            -- For now, reusing broadcast signal logic manually
-            -- Adding special logic locally
-            
-            -- Send Signal to Alt
-            -- We need a dedicated ID for Surf ON and OFF
-            -- Adding them to table above dynamically if needed, or reusing
-            -- Using "surf_on" command
-            
-            -- Wait, "507770095" is throw_space in previous script.
-            -- I added specific Surf signals below in the table but need to call them here.
-            -- Let's manually trigger them:
-            -- "surf_on" -> 507770098 (example) - I need to add to table.
-            
-            -- Updated table above includes specific logic? No, let me fix the ID collision in logic.
-            -- I'll use: 507770098 for surf_on, 507770099 for surf_off.
-            
-            -- Since I cannot edit the table in real-time execution easily without a rebuild,
-            -- I will assume the table above has them. I will add them now.
-            
-            -- Correction: I will use the "mock" trick or just add new IDs.
-            -- Using 507770200+ for dance, so 507770098/99 are free.
-            
-            -- But wait, I can just use broadcastSignal with a new ID and add it to ExecuteCommand.
-            -- Updating ExecuteCommand...
-            
-            broadcastSignal("507770098") -- Surf ON
-            
-            local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
-            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if hum and hrp then
-                hum.WalkSpeed = 100
-                hum.JumpPower = 100
-                masterFloatVel = Instance.new("BodyVelocity")
-                masterFloatVel.Velocity = Vector3.new(0,0,0)
-                masterFloatVel.MaxForce = Vector3.new(0, 3000, 0) -- Slight levitation
-                masterFloatVel.Parent = hrp
-            end
-        else
-            broadcastSignal("507770099") -- Surf OFF
-            local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
-            if hum then hum.WalkSpeed = 16 hum.JumpPower = 50 end
-            if masterFloatVel then masterFloatVel:Destroy() masterFloatVel = nil end
-        end
-    end,
-})
-
--- Update SIGNALS table injection
-SIGNALS["507770098"] = "surf_on"
-SIGNALS["507770099"] = "surf_off"
-
 
 RemoteTab:CreateSection("Energize Animations (Toggle)")
 RemoteTab:CreateToggle({ Name = "Glitch Levitate", CurrentValue = false, Callback = function(v) if v then broadcastSignal("507770201") else broadcastSignal("507770200") end end })
