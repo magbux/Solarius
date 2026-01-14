@@ -41,8 +41,8 @@ local isSpeedBoosted = false
 
 local energizeTrack = nil
 local energizeLoop = nil
-local connectInputName = ""
-local standInputName = "" 
+local realControllerInput = ""
+local fakeControllerInput = "" 
 local remoteCmdInput = ""
 
 local invisSound = Instance.new("Sound", LocalPlayer:WaitForChild("PlayerGui"))
@@ -752,61 +752,54 @@ local function broadcastSignal(id)
 end
 
 local MainTab = venyx:addPage("Connect", 5012544693)
-local SectionConnect = MainTab:addSection("Controller Connection")
+local SectionReal = MainTab:addSection("Real Controller (Slave Mode)")
 
-SectionConnect:addTextbox("Controller Name", "Type name here", function(value, focusLost)
+SectionReal:addTextbox("Real Controller (Main Account)", "Type Main Name", function(value, focusLost)
     if focusLost then
-        connectInputName = value
+        realControllerInput = value
     end
 end)
 
-SectionConnect:addButton("Submit & Obey", function()
-    local t = findPlayerPartial(connectInputName)
+SectionReal:addButton("Obey / Connect", function()
+    local t = findPlayerPartial(realControllerInput)
     if t and t ~= LocalPlayer then
         controllerPlayer = t
         isControlled = true
         initSignalListener(t)
-        updateStatus("CONTROLLED (Controlled by " .. t.Name .. ")", Color3.fromRGB(255, 50, 50))
-        Notify("Submitted", "You are now controlled by " .. t.Name .. ".")
+        updateStatus("CONTROLLED (by " .. t.Name .. ")", Color3.fromRGB(255, 50, 50))
+        Notify("Submitted", "Now obeying " .. t.Name)
     else
         Notify("Error", "Player invalid or not found")
     end
 end)
 
-SectionConnect:addButton("Connect to Self (Showcase)", function()
-    controllerPlayer = LocalPlayer
-    isControlled = true
-    initSignalListener(LocalPlayer)
-    updateStatus("CONTROLLED (Self/Debug Mode)", Color3.fromRGB(255, 170, 0))
-    Notify("Self Control", "You are now controlling yourself.")
-end)
+local SectionFake = MainTab:addSection("Fake Controller (Master Mode)")
 
-local SectionMaster = MainTab:addSection("Stand Connection (Master Mode)")
-
-SectionMaster:addTextbox("Stand/Slave Name", "Type Stand Name", function(value, focusLost)
+SectionFake:addTextbox("Fake Controller (Alt Name)", "Type Alt Name", function(value, focusLost)
     if focusLost then
-        standInputName = value
+        fakeControllerInput = value
     end
 end)
 
-SectionMaster:addButton("Connect / Spectate", function()
-    local t = findPlayerPartial(standInputName)
+SectionFake:addButton("Goto & Spectate", function()
+    local t = findPlayerPartial(fakeControllerInput)
     if t then
-        controllerPlayer = t
-        flingTargetPlayer = t
+        Notify("Spectating", "Target found: " .. t.Name)
         
-        Notify("Connected", "Target found: " .. t.Name)
         if t.Character and t.Character:FindFirstChild("Humanoid") then
             workspace.CurrentCamera.CameraSubject = t.Character.Humanoid
-            Notify("Camera", "Spectating " .. t.Name)
         end
-        updateStatus("TARGET: " .. t.Name, Color3.fromRGB(255, 170, 0))
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and t.Character and t.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = t.Character.HumanoidRootPart.CFrame * CFrame.new(0, 5, 5)
+        end
+        
+        flingTargetPlayer = t
     else
         Notify("Error", "Player not found.")
     end
 end)
 
-SectionMaster:addButton("Reset Camera", function()
+SectionFake:addButton("Reset Camera", function()
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
         workspace.CurrentCamera.CameraSubject = LocalPlayer.Character.Humanoid
     end
