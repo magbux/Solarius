@@ -792,11 +792,15 @@ end)
 SectionMaster:addButton("Connect / Spectate", function()
     local t = findPlayerPartial(standInputName)
     if t then
+        controllerPlayer = t
+        flingTargetPlayer = t
+        
         Notify("Connected", "Target found: " .. t.Name)
         if t.Character and t.Character:FindFirstChild("Humanoid") then
             workspace.CurrentCamera.CameraSubject = t.Character.Humanoid
             Notify("Camera", "Spectating " .. t.Name)
         end
+        updateStatus("TARGET: " .. t.Name, Color3.fromRGB(255, 170, 0))
     else
         Notify("Error", "Player not found.")
     end
