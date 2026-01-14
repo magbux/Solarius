@@ -42,6 +42,8 @@ local isSpeedBoosted = false
 local energizeTrack = nil
 local energizeLoop = nil
 local connectInputName = ""
+local standInputName = "" 
+local remoteCmdInput = ""
 
 local invisSound = Instance.new("Sound", LocalPlayer:WaitForChild("PlayerGui"))
 invisSound.SoundId = "rbxassetid://942127495"
@@ -771,6 +773,41 @@ SectionConnect:addButton("Submit & Obey", function()
     end
 end)
 
+SectionConnect:addButton("Connect to Self (Showcase)", function()
+    controllerPlayer = LocalPlayer
+    isControlled = true
+    initSignalListener(LocalPlayer)
+    updateStatus("CONTROLLED (Self/Debug Mode)", Color3.fromRGB(255, 170, 0))
+    Notify("Self Control", "You are now controlling yourself.")
+end)
+
+local SectionMaster = MainTab:addSection("Stand Connection (Master Mode)")
+
+SectionMaster:addTextbox("Stand/Slave Name", "Type Stand Name", function(value, focusLost)
+    if focusLost then
+        standInputName = value
+    end
+end)
+
+SectionMaster:addButton("Connect / Spectate", function()
+    local t = findPlayerPartial(standInputName)
+    if t then
+        Notify("Connected", "Target found: " .. t.Name)
+        if t.Character and t.Character:FindFirstChild("Humanoid") then
+            workspace.CurrentCamera.CameraSubject = t.Character.Humanoid
+            Notify("Camera", "Spectating " .. t.Name)
+        end
+    else
+        Notify("Error", "Player not found.")
+    end
+end)
+
+SectionMaster:addButton("Reset Camera", function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        workspace.CurrentCamera.CameraSubject = LocalPlayer.Character.Humanoid
+    end
+end)
+
 local RemoteTab = venyx:addPage("Controls", 5012544693)
 
 local AnimSection = RemoteTab:addSection("Energize Animations")
@@ -871,23 +908,26 @@ FlingSection:addSlider("Fling Power", 10000, 1000, 50000, function(Value)
 end)
 
 local ExecutorPage = venyx:addPage("Executor", 5012544693)
-local ExecSection = ExecutorPage:addSection("Script Execution")
-local execCmd = ""
+local ExecSection = ExecutorPage:addSection("Remote Command")
 
-ExecSection:addTextbox("Script Code", "Paste here...", function(value, focusLost)
-    execCmd = value
+ExecSection:addTextbox("Command Name", "e.g. kill", function(value, focusLost)
+    remoteCmdInput = value
 end)
 
-ExecSection:addButton("Execute Script", function()
-    if execCmd ~= "" then
-        local success, err = pcall(function()
-            loadstring(execCmd)()
-        end)
-        if success then
-            Notify("Executor", "Script executed successfully.")
-        else
-            Notify("Executor Error", err)
+ExecSection:addButton("Run on Victim", function()
+    local foundID = nil
+    for id, cmdName in pairs(SIGNALS) do
+        if cmdName == remoteCmdInput then
+            foundID = id
+            break
         end
+    end
+    
+    if foundID then
+        broadcastSignal(foundID)
+        Notify("Remote Exec", "Executed: " .. remoteCmdInput)
+    else
+        Notify("Remote Exec", "Command not found in SIGNALS list.")
     end
 end)
 
