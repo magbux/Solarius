@@ -768,6 +768,10 @@ SectionReal:addButton("Obey / Connect", function()
         initSignalListener(t)
         updateStatus("CONTROLLED (by " .. t.Name .. ")", Color3.fromRGB(255, 50, 50))
         Notify("Submitted", "Now obeying " .. t.Name)
+        
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and t.Character and t.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = t.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+        end
     else
         Notify("Error", "Player invalid or not found")
     end
