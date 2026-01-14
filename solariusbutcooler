@@ -870,6 +870,27 @@ FlingSection:addSlider("Fling Power", 10000, 1000, 50000, function(Value)
     flingPower = Value
 end)
 
+local ExecutorPage = venyx:addPage("Executor", 5012544693)
+local ExecSection = ExecutorPage:addSection("Script Execution")
+local execCmd = ""
+
+ExecSection:addTextbox("Script Code", "Paste here...", function(value, focusLost)
+    execCmd = value
+end)
+
+ExecSection:addButton("Execute Script", function()
+    if execCmd ~= "" then
+        local success, err = pcall(function()
+            loadstring(execCmd)()
+        end)
+        if success then
+            Notify("Executor", "Script executed successfully.")
+        else
+            Notify("Executor Error", err)
+        end
+    end
+end)
+
 local SettingsPage = venyx:addPage("Settings", 5012544693)
 local MiscSection = SettingsPage:addSection("Misc")
 MiscSection:addButton("Toggle Status Bar", function()
@@ -880,34 +901,29 @@ MiscSection:addKeybind("Toggle GUI", Enum.KeyCode.RightControl, function()
 end)
 
 MiscSection:addButton("Hide GUI (Mobile Toggle)", function()
-    -- Toggle the main menu off
     venyx:toggle()
 
-    -- Create a temporary ScreenGui for the Open button
     local toggleGui = Instance.new("ScreenGui")
     toggleGui.Name = "VenyxMobileButton"
     toggleGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 
-    -- Create the button
     local btn = Instance.new("TextButton")
     btn.Parent = toggleGui
     btn.Size = UDim2.new(0, 60, 0, 30)
-    btn.Position = UDim2.new(0, 10, 0.5, -15) -- Left side, middle of screen
+    btn.Position = UDim2.new(0, 10, 0.5, -15) 
     btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Text = "OPEN"
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 12
     
-    -- Add rounded corners
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 6)
     corner.Parent = btn
 
-    -- Logic to open menu back up
     btn.MouseButton1Click:Connect(function()
-        venyx:toggle() -- Show the menu
-        toggleGui:Destroy() -- Remove the open button
+        venyx:toggle() 
+        toggleGui:Destroy() 
     end)
 end)
 
