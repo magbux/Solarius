@@ -124,13 +124,10 @@ local SIGNALS = {
     ["507770239"] = "bring",["507770453"] = "jump",["507770818"] = "kill",["507771019"] = "stand",["507771955"] = "void",["507772104"] = "spin",["507776879"] = "jumpscare",["507766388"] = "free",
     ["507771666"] = "fling_nearest",["507765000"] = "blackout",["507770011"] = "freeze",["507770012"] = "unfreeze",["507770013"] = "sit",["507770014"] = "trip",["507770015"] = "orbit",["507770016"] = "stop_orbit",["507770017"] = "headless",["507770018"] = "noarms",["507770019"] = "explode",["507770020"] = "fakekick",["507770021"] = "blur",["507770022"] = "unblur",["507770023"] = "screenshake",["507770024"] = "force1st",
     ["507770025"] = "fixcam",["507770026"] = "slow",["507770027"] = "fast",["507770028"] = "lowgrav",["507770029"] = "normgrav",["507770030"] = "spasm",["507770031"] = "unglitch",["507770032"] = "naked",
-    ["507770033"] = "float",["507770034"] = "sink",["507770035"] = "dog",["507770036"] = "undog",["507770037"] = "worship",["507770038"] = "rocket",["507770039"] = "blockhead",["507770040"] = "creepy",["507770041"] = "rainbow",["507770042"] = "unrainbow", ["507770043"] = "ghost",["507770044"] = "unghost",["507770045"] = "highfov",["507770046"] = "lowfov",["507770047"] = "drunk",["507770048"] = "sober",
-    ["507770049"] = "fakelag",["507770050"] = "antisit", ["507770051"] = "mock",["507770052"] = "earthquake",["507770053"] = "normalfov",["507770054"] = "confuse",["507770055"] = "clarity",["507770056"] = "feinvis",
+    ["507770033"] = "float",["507770034"] = "sink",["507770035"] = "dog",["507770036"] = "undog",["507770037"] = "worship",["507770038"] = "rocket",["507770039"] = "blockhead",["507770040"] = "creepy",["507770041"] = "rainbow",["507770042"] = "unrainbow",["507770043"] = "ghost",["507770044"] = "unghost",["507770045"] = "highfov",["507770046"] = "lowfov",["507770047"] = "drunk",["507770048"] = "sober",["507770049"] = "fakelag",["507770050"] = "antisit", ["507770051"] = "mock",["507770052"] = "earthquake",["507770053"] = "normalfov",["507770054"] = "confuse",["507770055"] = "clarity",["507770056"] = "feinvis",
     ["507770057"] = "fespeed",["507770058"] = "togglestand",["507770059"] = "move_left",["507770060"] = "move_right",["507770095"] = "throw_space",["507770200"] = "stop_energize",["507770201"] = "e_glitchlevitate",["507770202"] = "e_moondance",["507770203"] = "e_spindance",["507770204"] = "e_barrelroll",["507770205"] = "e_insane",["507770206"] = "e_dinowalk",
-    ["507770207"] = "e_floorcrawl",["507770208"] = "e_helicopter",["507770209"] = "e_dab",["507770210"] = "e_levitate",["507770211"] = "e_megainsane",["507770212"] = "e_fullpunch",
-    ["507770213"] = "e_headthrow",["507770214"] = "e_crouch",["507770215"] = "e_floatinghead", ["507770216"] = "e_jumpingjacks", ["507770217"] = "e_faint",["507770218"] = "e_floorfaint",["507770219"] = "e_superfaint",["507770220"] = "e_spinner", ["507770221"] = "e_floatsit", ["507770222"] = "e_movingdance",["507770223"] = "e_weirdmove",["507770224"] = "e_spindance2",
-    ["507770225"] = "e_bowdown", ["507770226"] = "e_swordslam", ["507770227"] = "e_superpunch",["507770228"] = "e_fullswing", ["507770229"] = "e_scared", ["507770230"] = "e_armdetach",
-    ["507770231"] = "e_swordslice",["507770232"] = "e_insanearms",["507770233"] = "e_cloneillusion", ["507770234"] = "e_loophead", ["507770235"] = "e_loopslam",["507770236"] = "e_herojump"
+    ["507770207"] = "e_floorcrawl",["507770208"] = "e_helicopter",["507770209"] = "e_dab",["507770210"] = "e_levitate",["507770211"] = "e_megainsane",["507770212"] = "e_fullpunch",["507770213"] = "e_headthrow",["507770214"] = "e_crouch",["507770215"] = "e_floatinghead", ["507770216"] = "e_jumpingjacks",["507770217"] = "e_faint",["507770218"] = "e_floorfaint",["507770219"] = "e_superfaint",["507770220"] = "e_spinner",["507770221"] = "e_floatsit",["507770222"] = "e_movingdance",["507770223"] = "e_weirdmove",["507770224"] = "e_spindance2",
+    ["507770225"] = "e_bowdown",["507770226"] = "e_swordslam",["507770227"] = "e_superpunch",["507770228"] = "e_fullswing", ["507770229"] = "e_scared",["507770230"] = "e_armdetach",["507770231"] = "e_swordslice",["507770232"] = "e_insanearms",["507770233"] = "e_cloneillusion", ["507770234"] = "e_loophead",["507770235"] = "e_loopslam",["507770236"] = "e_herojump"
 }
 
 local function updateStatus(text, color)
@@ -1009,28 +1006,56 @@ end)
 
 MiscSection:addButton("Hide GUI (Mobile Toggle)", function()
     venyx:toggle()
-
     local toggleGui = Instance.new("ScreenGui")
     toggleGui.Name = "VenyxMobileButton"
+    toggleGui.ResetOnSpawn = false
     toggleGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
-
     local btn = Instance.new("TextButton")
     btn.Parent = toggleGui
     btn.Size = UDim2.new(0, 60, 0, 30)
-    btn.Position = UDim2.new(0, 10, 0.5, -15) 
+    btn.Position = UDim2.new(0, 10, 0.5, -15)
     btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Text = "OPEN"
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 12
-    
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 6)
     corner.Parent = btn
-
-    btn.MouseButton1Click:Connect(function()
-        venyx:toggle() 
-        toggleGui:Destroy() 
+    local dragStart = nil
+    local startPos = nil
+    local isDragging = false
+    local dragInput = nil
+    btn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isDragging = true
+            dragStart = input.Position
+            startPos = btn.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    isDragging = false
+                end
+            end)
+        end
+    end)
+    btn.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and isDragging then
+            local delta = input.Position - dragStart
+            btn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    btn.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if dragStart and (input.Position - dragStart).Magnitude <= 5 then
+                venyx:toggle()
+                toggleGui:Destroy()
+            end
+        end
     end)
 end)
 
