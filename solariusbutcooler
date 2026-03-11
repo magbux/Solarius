@@ -28,11 +28,13 @@ local confusionEnabled = false
 local ghostEnabled = false
 
 local controllerPlayer = nil
+local followTargetPlayer = nil
 local isControlled = false
 local standPlatform = nil
 local isBusy = false
 local signalConnection = nil
 local standEnabled = true 
+local followXOffset = 0
 
 local invis_on = false
 local defaultSpeed = 16
@@ -118,26 +120,9 @@ StatusLabel.Font = Enum.Font.GothamBold
 StatusLabel.TextSize = 14
 StatusLabel.Parent = StatusFrame
 
-local SIGNALS = {
-    ["507770239"] = "bring", ["507770453"] = "jump", ["507770818"] = "kill", ["507771019"] = "stand",
-    ["507771955"] = "void", ["507772104"] = "spin", ["507776879"] = "jumpscare", ["507766388"] = "free",
-    ["507771666"] = "fling_nearest", ["507765000"] = "blackout", ["507770011"] = "freeze", ["507770012"] = "unfreeze",
-    ["507770013"] = "sit", ["507770014"] = "trip", ["507770015"] = "orbit", ["507770016"] = "stop_orbit",
-    ["507770017"] = "headless", ["507770018"] = "noarms", ["507770019"] = "explode", ["507770020"] = "fakekick",
-    ["507770021"] = "blur", ["507770022"] = "unblur", ["507770023"] = "screenshake", ["507770024"] = "force1st",
-    ["507770025"] = "fixcam", ["507770026"] = "slow", ["507770027"] = "fast", ["507770028"] = "lowgrav",
-    ["507770029"] = "normgrav", ["507770030"] = "spasm", ["507770031"] = "unglitch", ["507770032"] = "naked",
-    ["507770033"] = "float", ["507770034"] = "sink", ["507770035"] = "dog", ["507770036"] = "undog",
-    ["507770037"] = "worship", ["507770038"] = "rocket", ["507770039"] = "blockhead", ["507770040"] = "creepy",
-    ["507770041"] = "rainbow", ["507770042"] = "unrainbow", ["507770043"] = "ghost", ["507770044"] = "unghost",
-    ["507770045"] = "highfov", ["507770046"] = "lowfov", ["507770047"] = "drunk", ["507770048"] = "sober",
-    ["507770049"] = "fakelag", ["507770050"] = "antisit", ["507770051"] = "mock", ["507770052"] = "earthquake",
-    ["507770053"] = "normalfov", ["507770054"] = "confuse", ["507770055"] = "clarity", ["507770056"] = "feinvis",
-    ["507770057"] = "fespeed", ["507770058"] = "togglestand", ["507770095"] = "throw_space", ["507770200"] = "stop_energize",
-    ["507770201"] = "e_glitchlevitate", ["507770202"] = "e_moondance", ["507770203"] = "e_spindance", ["507770204"] = "e_barrelroll",
-    ["507770205"] = "e_insane", ["507770206"] = "e_dinowalk", ["507770207"] = "e_floorcrawl", ["507770208"] = "e_helicopter",
-    ["507770209"] = "e_dab", ["507770210"] = "e_levitate", ["507770211"] = "e_megainsane", ["507770212"] = "e_fullpunch",
-    ["507770213"] = "e_headthrow", ["507770214"] = "e_crouch"
+local SIGNALS = {["507770239"] = "bring",["507770453"] = "jump",["507770818"] = "kill",["507771019"] = "stand",["507771955"] = "void",["507772104"] = "spin",["507776879"] = "jumpscare", ["507766388"] = "free",["507771666"] = "fling_nearest",["507765000"] = "blackout",["507770011"] = "freeze",["507770012"] = "unfreeze",["507770013"] = "sit",["507770014"] = "trip",["507770015"] = "orbit",["507770016"] = "stop_orbit",["507770017"] = "headless",["507770018"] = "noarms",["507770019"] = "explode", ["507770020"] = "fakekick",["507770021"] = "blur",["507770022"] = "unblur",["507770023"] = "screenshake",["507770024"] = "force1st",["507770025"] = "fixcam",["507770026"] = "slow",["507770027"] = "fast",["507770028"] = "lowgrav",["507770029"] = "normgrav",["507770030"] = "spasm",["507770031"] = "unglitch",["507770032"] = "naked",
+    ["507770033"] = "float",["507770034"] = "sink",["507770035"] = "dog",["507770036"] = "undog",["507770037"] = "worship",["507770038"] = "rocket",["507770039"] = "blockhead",["507770040"] = "creepy",["507770041"] = "rainbow",["507770042"] = "unrainbow", ["507770043"] = "ghost",["507770044"] = "unghost",["507770045"] = "highfov",["507770046"] = "lowfov",["507770047"] = "drunk",["507770048"] = "sober",["507770049"] = "fakelag",["507770050"] = "antisit", ["507770051"] = "mock",["507770052"] = "earthquake",["507770053"] = "normalfov",["507770054"] = "confuse",["507770055"] = "clarity",["507770056"] = "feinvis",["507770057"] = "fespeed",["507770058"] = "togglestand", ["507770059"] = "move_left",["507770060"] = "move_right",["507770095"] = "throw_space", ["507770200"] = "stop_energize",
+    ["507770201"] = "e_glitchlevitate",["507770202"] = "e_moondance",["507770203"] = "e_spindance",["507770204"] = "e_barrelroll",["507770205"] = "e_insane", ["507770206"] = "e_dinowalk",["507770207"] = "e_floorcrawl",["507770208"] = "e_helicopter",["507770209"] = "e_dab", ["507770210"] = "e_levitate",["507770211"] = "e_megainsane",["507770212"] = "e_fullpunch",["507770213"] = "e_headthrow", ["507770214"] = "e_crouch"
 }
 
 local function updateStatus(text, color)
@@ -258,11 +243,11 @@ LocalPlayer.CharacterAdded:Connect(function(character)
 end)
 
 local function standLogic()
-    if isControlled and controllerPlayer and controllerPlayer.Character and controllerPlayer.Character:FindFirstChild("HumanoidRootPart") then
+    if isControlled and controllerPlayer and followTargetPlayer and followTargetPlayer.Character and followTargetPlayer.Character:FindFirstChild("HumanoidRootPart") then
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             if not isBusy and not orbitEnabled and not hiddenfling and standEnabled then
                 local char = LocalPlayer.Character
-                local tRoot = controllerPlayer.Character.HumanoidRootPart
+                local tRoot = followTargetPlayer.Character.HumanoidRootPart
                 local cRoot = char.HumanoidRootPart
                 local hum = char:FindFirstChild("Humanoid")
                 if hum then
@@ -281,10 +266,10 @@ local function standLogic()
                 
                 local bob = math.sin(tick() * 2) * 0.8
                 
-                local goalCF = tRoot.CFrame * CFrame.new(0, 3 + bob, 2.5)
+                local goalCF = tRoot.CFrame * CFrame.new(followXOffset, 3 + bob, 2.5)
                 
                 if dogMode then
-                    goalCF = tRoot.CFrame * CFrame.new(2, -2, 2)
+                    goalCF = tRoot.CFrame * CFrame.new(2 + followXOffset, -2, 2)
                 end
 
                 if standPlatform then
@@ -294,7 +279,7 @@ local function standLogic()
                 cRoot.Velocity = Vector3.zero
             elseif orbitEnabled and not hiddenfling then
                 local char = LocalPlayer.Character
-                local tRoot = controllerPlayer.Character.HumanoidRootPart
+                local tRoot = followTargetPlayer.Character.HumanoidRootPart
                 local cRoot = char.HumanoidRootPart
                 local hum = char:FindFirstChild("Humanoid")
                 if hum then
@@ -432,11 +417,15 @@ local function executeCommand(cmd)
         if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
     elseif cmd == "bring" then
         isBusy = true
-        if char and controllerPlayer and controllerPlayer.Character then
-            hrp.CFrame = controllerPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,2.5)
+        if char and followTargetPlayer and followTargetPlayer.Character then
+            hrp.CFrame = followTargetPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(followXOffset,0,2.5)
         end
         task.wait(0.5)
         isBusy = false
+    elseif cmd == "move_left" then
+        followXOffset = followXOffset - 2
+    elseif cmd == "move_right" then
+        followXOffset = followXOffset + 2
     elseif cmd == "spin" then
         spinEnabled = not spinEnabled
     elseif cmd == "kill" then
@@ -459,7 +448,7 @@ local function executeCommand(cmd)
         isBusy = false
     elseif cmd == "fling_nearest" then
         isBusy = true
-        local nearest = getNearestPlayerTo(controllerPlayer)
+        local nearest = getNearestPlayerTo(followTargetPlayer)
         if nearest and nearest.Character and nearest.Character:FindFirstChild("HumanoidRootPart") then
             local oldPower = flingPower
             flingPower = 50000 
@@ -477,8 +466,8 @@ local function executeCommand(cmd)
             flingTargetPlayer = nil
             flingPower = oldPower
             
-            if char and controllerPlayer and controllerPlayer.Character then
-                hrp.CFrame = controllerPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,2.5)
+            if char and followTargetPlayer and followTargetPlayer.Character then
+                hrp.CFrame = followTargetPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(followXOffset,0,2.5)
             end
         end
         isBusy = false
@@ -487,6 +476,7 @@ local function executeCommand(cmd)
         orbitEnabled = false
         dogMode = false
         standEnabled = true 
+        followXOffset = 0
         stopEnergize()
     elseif cmd == "togglestand" then
         standEnabled = not standEnabled
@@ -497,6 +487,7 @@ local function executeCommand(cmd)
     elseif cmd == "free" then
         isControlled = false
         controllerPlayer = nil
+        followTargetPlayer = nil
         orbitEnabled = false
         spasmEnabled = false
         shakeEnabled = false
@@ -510,6 +501,7 @@ local function executeCommand(cmd)
         ghostEnabled = false
         standEnabled = true
         flingTargetPlayer = nil
+        followXOffset = 0
         stopEnergize()
         if signalConnection then signalConnection:Disconnect() signalConnection = nil end
         if standPlatform then standPlatform:Destroy() standPlatform = nil end
@@ -590,8 +582,8 @@ local function executeCommand(cmd)
         if hum then hum.PlatformStand = false end
     elseif cmd == "worship" then
         if hum then hum.Sit = true end
-        if hrp and controllerPlayer and controllerPlayer.Character then
-            hrp.CFrame = CFrame.new(hrp.Position, controllerPlayer.Character.HumanoidRootPart.Position)
+        if hrp and followTargetPlayer and followTargetPlayer.Character then
+            hrp.CFrame = CFrame.new(hrp.Position, followTargetPlayer.Character.HumanoidRootPart.Position)
         end
     elseif cmd == "rocket" then
         if hrp then 
@@ -764,13 +756,14 @@ SectionReal:addButton("Connect", function()
     local t = findPlayerPartial(realControllerInput)
     if t and t ~= LocalPlayer then
         controllerPlayer = t
+        followTargetPlayer = t
         isControlled = true
         initSignalListener(t)
         updateStatus("CONTROLLED (by " .. t.Name .. ")", Color3.fromRGB(255, 50, 50))
         Notify("Submitted", "Now obeying " .. t.Name)
         
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and t.Character and t.Character:FindFirstChild("HumanoidRootPart") then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = t.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+            LocalPlayer.Character.HumanoidRootPart.CFrame = t.Character.HumanoidRootPart.CFrame * CFrame.new(followXOffset, 0, 3)
         end
     else
         Notify("Error", "Player invalid or not found")
@@ -779,7 +772,7 @@ end)
 
 local SectionFake = MainTab:addSection("Fake Controller")
 
-SectionFake:addTextbox("Fake Controller (dont mind this is broken)", "Type Alt Name", function(value, focusLost)
+SectionFake:addTextbox("Follow Target (will listen to real control)", "Type Target Name", function(value, focusLost)
     if focusLost then
         fakeControllerInput = value
     end
@@ -793,10 +786,7 @@ SectionFake:addButton("Goto & Spectate", function()
         if t.Character and t.Character:FindFirstChild("Humanoid") then
             workspace.CurrentCamera.CameraSubject = t.Character.Humanoid
         end
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and t.Character and t.Character:FindFirstChild("HumanoidRootPart") then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = t.Character.HumanoidRootPart.CFrame * CFrame.new(0, 5, 5)
-        end
-        
+        followTargetPlayer = t
         flingTargetPlayer = t
     else
         Notify("Error", "Player not found.")
@@ -831,6 +821,8 @@ local MoveSection = RemoteTab:addSection("Movement Actions")
 MoveSection:addButton("Bring Controlled", function() broadcastSignal("507770239") end)
 MoveSection:addButton("Stand Mode (Reset)", function() broadcastSignal("507771019") end)
 MoveSection:addButton("Toggle Stand Follow", function() broadcastSignal("507770058") end)
+MoveSection:addButton("Move Left", function() broadcastSignal("507770059") end)
+MoveSection:addButton("Move Right", function() broadcastSignal("507770060") end)
 MoveSection:addButton("Orbit Mode", function() broadcastSignal("507770015") end)
 MoveSection:addButton("Jump", function() broadcastSignal("507770453") end)
 MoveSection:addButton("Sit", function() broadcastSignal("507770013") end)
