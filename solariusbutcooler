@@ -120,9 +120,17 @@ StatusLabel.Font = Enum.Font.GothamBold
 StatusLabel.TextSize = 14
 StatusLabel.Parent = StatusFrame
 
-local SIGNALS = {["507770239"] = "bring",["507770453"] = "jump",["507770818"] = "kill",["507771019"] = "stand",["507771955"] = "void",["507772104"] = "spin",["507776879"] = "jumpscare", ["507766388"] = "free",["507771666"] = "fling_nearest",["507765000"] = "blackout",["507770011"] = "freeze",["507770012"] = "unfreeze",["507770013"] = "sit",["507770014"] = "trip",["507770015"] = "orbit",["507770016"] = "stop_orbit",["507770017"] = "headless",["507770018"] = "noarms",["507770019"] = "explode", ["507770020"] = "fakekick",["507770021"] = "blur",["507770022"] = "unblur",["507770023"] = "screenshake",["507770024"] = "force1st",["507770025"] = "fixcam",["507770026"] = "slow",["507770027"] = "fast",["507770028"] = "lowgrav",["507770029"] = "normgrav",["507770030"] = "spasm",["507770031"] = "unglitch",["507770032"] = "naked",
-    ["507770033"] = "float",["507770034"] = "sink",["507770035"] = "dog",["507770036"] = "undog",["507770037"] = "worship",["507770038"] = "rocket",["507770039"] = "blockhead",["507770040"] = "creepy",["507770041"] = "rainbow",["507770042"] = "unrainbow", ["507770043"] = "ghost",["507770044"] = "unghost",["507770045"] = "highfov",["507770046"] = "lowfov",["507770047"] = "drunk",["507770048"] = "sober",["507770049"] = "fakelag",["507770050"] = "antisit", ["507770051"] = "mock",["507770052"] = "earthquake",["507770053"] = "normalfov",["507770054"] = "confuse",["507770055"] = "clarity",["507770056"] = "feinvis",["507770057"] = "fespeed",["507770058"] = "togglestand", ["507770059"] = "move_left",["507770060"] = "move_right",["507770095"] = "throw_space", ["507770200"] = "stop_energize",
-    ["507770201"] = "e_glitchlevitate",["507770202"] = "e_moondance",["507770203"] = "e_spindance",["507770204"] = "e_barrelroll",["507770205"] = "e_insane", ["507770206"] = "e_dinowalk",["507770207"] = "e_floorcrawl",["507770208"] = "e_helicopter",["507770209"] = "e_dab", ["507770210"] = "e_levitate",["507770211"] = "e_megainsane",["507770212"] = "e_fullpunch",["507770213"] = "e_headthrow", ["507770214"] = "e_crouch"
+local SIGNALS = {
+    ["507770239"] = "bring",["507770453"] = "jump",["507770818"] = "kill",["507771019"] = "stand",["507771955"] = "void",["507772104"] = "spin",["507776879"] = "jumpscare",["507766388"] = "free",
+    ["507771666"] = "fling_nearest",["507765000"] = "blackout",["507770011"] = "freeze",["507770012"] = "unfreeze",["507770013"] = "sit",["507770014"] = "trip",["507770015"] = "orbit",["507770016"] = "stop_orbit",["507770017"] = "headless",["507770018"] = "noarms",["507770019"] = "explode",["507770020"] = "fakekick",["507770021"] = "blur",["507770022"] = "unblur",["507770023"] = "screenshake",["507770024"] = "force1st",
+    ["507770025"] = "fixcam",["507770026"] = "slow",["507770027"] = "fast",["507770028"] = "lowgrav",["507770029"] = "normgrav",["507770030"] = "spasm",["507770031"] = "unglitch",["507770032"] = "naked",
+    ["507770033"] = "float",["507770034"] = "sink",["507770035"] = "dog",["507770036"] = "undog",["507770037"] = "worship",["507770038"] = "rocket",["507770039"] = "blockhead",["507770040"] = "creepy",["507770041"] = "rainbow",["507770042"] = "unrainbow", ["507770043"] = "ghost",["507770044"] = "unghost",["507770045"] = "highfov",["507770046"] = "lowfov",["507770047"] = "drunk",["507770048"] = "sober",
+    ["507770049"] = "fakelag",["507770050"] = "antisit", ["507770051"] = "mock",["507770052"] = "earthquake",["507770053"] = "normalfov",["507770054"] = "confuse",["507770055"] = "clarity",["507770056"] = "feinvis",
+    ["507770057"] = "fespeed",["507770058"] = "togglestand",["507770059"] = "move_left",["507770060"] = "move_right",["507770095"] = "throw_space",["507770200"] = "stop_energize",["507770201"] = "e_glitchlevitate",["507770202"] = "e_moondance",["507770203"] = "e_spindance",["507770204"] = "e_barrelroll",["507770205"] = "e_insane",["507770206"] = "e_dinowalk",
+    ["507770207"] = "e_floorcrawl",["507770208"] = "e_helicopter",["507770209"] = "e_dab",["507770210"] = "e_levitate",["507770211"] = "e_megainsane",["507770212"] = "e_fullpunch",
+    ["507770213"] = "e_headthrow",["507770214"] = "e_crouch",["507770215"] = "e_floatinghead", ["507770216"] = "e_jumpingjacks", ["507770217"] = "e_faint",["507770218"] = "e_floorfaint",["507770219"] = "e_superfaint",["507770220"] = "e_spinner", ["507770221"] = "e_floatsit", ["507770222"] = "e_movingdance",["507770223"] = "e_weirdmove",["507770224"] = "e_spindance2",
+    ["507770225"] = "e_bowdown", ["507770226"] = "e_swordslam", ["507770227"] = "e_superpunch",["507770228"] = "e_fullswing", ["507770229"] = "e_scared", ["507770230"] = "e_armdetach",
+    ["507770231"] = "e_swordslice",["507770232"] = "e_insanearms",["507770233"] = "e_cloneillusion", ["507770234"] = "e_loophead", ["507770235"] = "e_loopslam",["507770236"] = "e_herojump"
 }
 
 local function updateStatus(text, color)
@@ -697,6 +705,50 @@ local function executeCommand(cmd)
         playEnergize("35154961", 1, 1, nil, true)
     elseif cmd == "e_crouch" then
         playEnergize("182724289", 1, 1, nil, true)
+    elseif cmd == "e_floatinghead" then
+        playEnergize("121572214", 1, 1, nil, true)
+    elseif cmd == "e_jumpingjacks" then
+        playEnergize("429681631", 1, 1, nil, true)
+    elseif cmd == "e_faint" then
+        playEnergize("181526230", 1, 1, nil, true)
+    elseif cmd == "e_floorfaint" then
+        playEnergize("181525546", 1, 1, nil, true)
+    elseif cmd == "e_superfaint" then
+        playEnergize("181525546", 40, 1, nil, true)
+    elseif cmd == "e_spinner" then
+        playEnergize("188632011", 2, 1, nil, true)
+    elseif cmd == "e_floatsit" then
+        playEnergize("179224234", 1, 1, nil, true)
+    elseif cmd == "e_movingdance" then
+        playEnergize("429703734", 1, 1, nil, true)
+    elseif cmd == "e_weirdmove" then
+        playEnergize("215384594", 1, 1, nil, true)
+    elseif cmd == "e_spindance2" then
+        playEnergize("186934910", 1, 1, nil, true)
+    elseif cmd == "e_bowdown" then
+        playEnergize("204292303", 3, 1, nil, true)
+    elseif cmd == "e_swordslam" then
+        playEnergize("204295235", 1, 1, nil, true)
+    elseif cmd == "e_superpunch" then
+        playEnergize("126753849", 3, 1, nil, true)
+    elseif cmd == "e_fullswing" then
+        playEnergize("218504594", 1, 1, nil, true)
+    elseif cmd == "e_scared" then
+        playEnergize("180612465", 1, 1, nil, true)
+    elseif cmd == "e_armdetach" then
+        playEnergize("33169583", 1e6, 1, nil, true)
+    elseif cmd == "e_swordslice" then
+        playEnergize("35978879", 1, 1, nil, true)
+    elseif cmd == "e_insanearms" then
+        playEnergize("27432691", 1e4, 1, nil, true)
+    elseif cmd == "e_cloneillusion" then
+        playEnergize("215384594", 1e7, 1, nil, true)
+    elseif cmd == "e_loophead" then
+        playEnergize("35154961", 1e6, 1, nil, true)
+    elseif cmd == "e_loopslam" then
+        playEnergize("204295235", 1e4, 1, nil, true)
+    elseif cmd == "e_herojump" then
+        playEnergize("184574340", 1, 1, nil, true)
     end
 end
 
@@ -772,7 +824,7 @@ end)
 
 local SectionFake = MainTab:addSection("Fake Controller")
 
-SectionFake:addTextbox("flex 'will go to them but u can control'", "Type Target Name", function(value, focusLost)
+SectionFake:addTextbox("flex (will listen to real control)", "Type Target Name", function(value, focusLost)
     if focusLost then
         fakeControllerInput = value
     end
@@ -816,6 +868,28 @@ AnimSection:addToggle("Mega Insane", nil, function(v) if v then broadcastSignal(
 AnimSection:addToggle("Full Punch", nil, function(v) if v then broadcastSignal("507770212") else broadcastSignal("507770200") end end)
 AnimSection:addToggle("Head Throw", nil, function(v) if v then broadcastSignal("507770213") else broadcastSignal("507770200") end end)
 AnimSection:addToggle("Crouch", nil, function(v) if v then broadcastSignal("507770214") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Floating Head", nil, function(v) if v then broadcastSignal("507770215") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Jumping Jacks", nil, function(v) if v then broadcastSignal("507770216") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Faint", nil, function(v) if v then broadcastSignal("507770217") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Floor Faint", nil, function(v) if v then broadcastSignal("507770218") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Super Faint", nil, function(v) if v then broadcastSignal("507770219") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Spinner", nil, function(v) if v then broadcastSignal("507770220") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Float Sit", nil, function(v) if v then broadcastSignal("507770221") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Moving Dance", nil, function(v) if v then broadcastSignal("507770222") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Weird Move", nil, function(v) if v then broadcastSignal("507770223") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Spin Dance 2", nil, function(v) if v then broadcastSignal("507770224") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Bow Down", nil, function(v) if v then broadcastSignal("507770225") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Sword Slam", nil, function(v) if v then broadcastSignal("507770226") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Super Punch", nil, function(v) if v then broadcastSignal("507770227") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Full Swing", nil, function(v) if v then broadcastSignal("507770228") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Scared", nil, function(v) if v then broadcastSignal("507770229") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Arm Detach", nil, function(v) if v then broadcastSignal("507770230") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Sword Slice", nil, function(v) if v then broadcastSignal("507770231") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Insane Arms", nil, function(v) if v then broadcastSignal("507770232") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Clone Illusion", nil, function(v) if v then broadcastSignal("507770233") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Loop Head", nil, function(v) if v then broadcastSignal("507770234") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Loop Slam", nil, function(v) if v then broadcastSignal("507770235") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Hero Jump", nil, function(v) if v then broadcastSignal("507770236") else broadcastSignal("507770200") end end)
 
 local MoveSection = RemoteTab:addSection("Movement Actions")
 MoveSection:addButton("Bring Controlled", function() broadcastSignal("507770239") end)
