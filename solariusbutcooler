@@ -772,7 +772,7 @@ end)
 
 local SectionFake = MainTab:addSection("Fake Controller")
 
-SectionFake:addTextbox("Follow Target (will listen to real control but will be on the person u type here)", "Type Target Name", function(value, focusLost)
+SectionFake:addTextbox("flex 'will go to them but u can control'", "Type Target Name", function(value, focusLost)
     if focusLost then
         fakeControllerInput = value
     end
