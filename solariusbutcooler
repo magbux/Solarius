@@ -29,17 +29,17 @@ if not ReplicatedStorage:FindFirstChild("juisdfj0i32i0eidsuf0iok") then
     detection.Parent = ReplicatedStorage
 end
 
--- Load Rayfield UI
+-- yo
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
     Name = "Solarius Controller",
     LoadingTitle = "Solarius Controller",
-    LoadingSubtitle = "Purple Edition",
+    LoadingSubtitle = "by mr rawr",
     ConfigurationSaving = { Enabled = false },
     Discord = { Enabled = false },
     KeySystem = false,
-    Theme = "Amethyst" -- Native Purple Theme
+    Theme = "Amethyst" -- hi
 })
 
 local function Notify(title, content)
@@ -518,7 +518,7 @@ local function broadcastSignal(id)
     end
 end
 
--- =========================== RAYFIELD UI LAYOUT =========================== --
+-- hello
 
 local ConnectTab = Window:CreateTab("Connect", 4483362458)
 ConnectTab:CreateSection("Real Controller")
@@ -692,9 +692,9 @@ SettingsPage:CreateButton({
 })
 
 SettingsPage:CreateButton({
-    Name = "Hide GUI (Mobile Toggle)",
+    Name = "Hide GUI (Mobile Toggle Not Needed)",
     Callback = function()
-        Rayfield:Destroy() -- Rayfield natively closes, but we will fake a mobile toggle to reopen
+        Rayfield:Destroy() -- Rayfield close for mobile 
         local toggleGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
         toggleGui.Name = "RayfieldMobileButton"
         toggleGui.ResetOnSpawn = false
@@ -727,7 +727,7 @@ SettingsPage:CreateButton({
         btn.InputEnded:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                 if dragStart and (input.Position - dragStart).Magnitude <= 5 then
-                    -- Rayfield has a built in Window toggle mapped to a key (default K or RightControl)
+                    -- rawr
                     VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.RightControl, false, game)
                     VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.RightControl, false, game)
                     toggleGui:Destroy()
