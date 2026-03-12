@@ -1,54 +1,3 @@
-local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/AmeloxRUS/guiluna/refs/heads/main/luna", true))()
-local Window = Luna:CreateWindow({
-    Name = "Solarius Controller",
-    Subtitle = "By idk",
-    LogoID = "5013109572",
-    LoadingEnabled = false,
-    KeySystem = false
-})
-
-local function Notify(title, content)
-    Luna:Notification({ 
-        Title = title,
-        Icon = "info",
-        ImageSource = "Material",
-        Content = content
-    })
-end
-
-local Tabs = {
-    Connect = Window:CreateTab({
-        Name = "Connect",
-        Icon = "link",
-        ImageSource = "Material",
-        ShowTitle = true
-    }),
-    Controls = Window:CreateTab({
-        Name = "Controls",
-        Icon = "gamepad",
-        ImageSource = "Material",
-        ShowTitle = true
-    }),
-    Fling = Window:CreateTab({
-        Name = "Fling",
-        Icon = "airplanemode_active",
-        ImageSource = "Material",
-        ShowTitle = true
-    }),
-    Executor = Window:CreateTab({
-        Name = "Executor",
-        Icon = "code",
-        ImageSource = "Material",
-        ShowTitle = true
-    }),
-    Settings = Window:CreateTab({
-        Name = "Settings",
-        Icon = "settings",
-        ImageSource = "Material",
-        ShowTitle = true
-    })
-}
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -108,6 +57,13 @@ if not ReplicatedStorage:FindFirstChild("juisdfj0i32i0eidsuf0iok") then
     detection.Parent = ReplicatedStorage
 end
 
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/zxciaz/VenyxUI/main/Reuploaded"))()
+local venyx = library.new("Solarius Controller", 5013109572)
+
+local function Notify(title, content)
+    venyx:Notify(title, content)
+end
+
 local function fling()
     local hrp, c, vel, movel = nil, nil, nil, 0.1
     while true do
@@ -164,8 +120,14 @@ StatusLabel.Font = Enum.Font.GothamBold
 StatusLabel.TextSize = 14
 StatusLabel.Parent = StatusFrame
 
-local SIGNALS = {["507770239"] = "bring",["507770453"] = "jump",["507770818"] = "kill",["507771019"] = "stand",["507771955"] = "void",["507772104"] = "spin",["507776879"] = "jumpscare",["507766388"] = "free",
-    ["507771666"] = "fling_nearest",["507765000"] = "blackout",["507770011"] = "freeze",["507770012"] = "unfreeze",["507770013"] = "sit",["507770014"] = "trip",["507770015"] = "orbit",["507770016"] = "stop_orbit",["507770017"] = "headless",["507770018"] = "noarms",["507770019"] = "explode",["507770020"] = "fakekick",["507770021"] = "blur",["507770022"] = "unblur",["507770023"] = "screenshake",["507770024"] = "force1st",["507770025"] = "fixcam",["507770026"] = "slow",["507770027"] = "fast",["507770028"] = "lowgrav",["507770029"] = "normgrav",["507770030"] = "spasm",["507770031"] = "unglitch",["507770032"] = "naked",["507770033"] = "float",["507770034"] = "sink",["507770035"] = "dog",["507770036"] = "undog",["507770037"] = "worship",["507770038"] = "rocket",["507770039"] = "blockhead",["507770040"] = "creepy",["507770041"] = "rainbow",["507770042"] = "unrainbow",["507770043"] = "ghost",["507770044"] = "unghost",["507770045"] = "highfov",["507770046"] = "lowfov",["507770047"] = "drunk",["507770048"] = "sober",["507770049"] = "fakelag",["507770050"] = "antisit",["507770051"] = "mock",["507770052"] = "earthquake",["507770053"] = "normalfov",["507770054"] = "confuse",["507770055"] = "clarity",["507770056"] = "feinvis",["507770057"] = "fespeed",["507770058"] = "togglestand",["507770059"] = "move_left",["507770060"] = "move_right",["507770095"] = "throw_space",["507770200"] = "stop_energize",["507770201"] = "e_glitchlevitate",["507770202"] = "e_moondance",["507770203"] = "e_spindance",["507770204"] = "e_barrelroll",["507770205"] = "e_insane",["507770206"] = "e_dinowalk",["507770207"] = "e_floorcrawl",["507770208"] = "e_helicopter",["507770209"] = "e_dab",["507770210"] = "e_levitate",["507770211"] = "e_megainsane",["507770212"] = "e_fullpunch",["507770213"] = "e_headthrow",["507770214"] = "e_crouch",["507770215"] = "e_floatinghead", ["507770216"] = "e_jumpingjacks",["507770217"] = "e_faint",["507770218"] = "e_floorfaint",["507770219"] = "e_superfaint",["507770220"] = "e_spinner",["507770221"] = "e_floatsit",["507770222"] = "e_movingdance",["507770223"] = "e_weirdmove",["507770224"] = "e_spindance2",["507770225"] = "e_bowdown",["507770226"] = "e_swordslam",["507770227"] = "e_superpunch",["507770228"] = "e_fullswing",["507770229"] = "e_scared",["507770230"] = "e_armdetach",["507770231"] = "e_swordslice",["507770232"] = "e_insanearms",["507770233"] = "e_cloneillusion", ["507770234"] = "e_loophead",["507770235"] = "e_loopslam",["507770236"] = "e_herojump"
+local SIGNALS = {
+    ["507770239"] = "bring",["507770453"] = "jump",["507770818"] = "kill",["507771019"] = "stand",["507771955"] = "void",["507772104"] = "spin",["507776879"] = "jumpscare",["507766388"] = "free",
+    ["507771666"] = "fling_nearest",["507765000"] = "blackout",["507770011"] = "freeze",["507770012"] = "unfreeze",["507770013"] = "sit",["507770014"] = "trip",["507770015"] = "orbit",["507770016"] = "stop_orbit",["507770017"] = "headless",["507770018"] = "noarms",["507770019"] = "explode",["507770020"] = "fakekick",["507770021"] = "blur",["507770022"] = "unblur",["507770023"] = "screenshake",["507770024"] = "force1st",
+    ["507770025"] = "fixcam",["507770026"] = "slow",["507770027"] = "fast",["507770028"] = "lowgrav",["507770029"] = "normgrav",["507770030"] = "spasm",["507770031"] = "unglitch",["507770032"] = "naked",
+    ["507770033"] = "float",["507770034"] = "sink",["507770035"] = "dog",["507770036"] = "undog",["507770037"] = "worship",["507770038"] = "rocket",["507770039"] = "blockhead",["507770040"] = "creepy",["507770041"] = "rainbow",["507770042"] = "unrainbow",["507770043"] = "ghost",["507770044"] = "unghost",["507770045"] = "highfov",["507770046"] = "lowfov",["507770047"] = "drunk",["507770048"] = "sober",["507770049"] = "fakelag",["507770050"] = "antisit", ["507770051"] = "mock",["507770052"] = "earthquake",["507770053"] = "normalfov",["507770054"] = "confuse",["507770055"] = "clarity",["507770056"] = "feinvis",
+    ["507770057"] = "fespeed",["507770058"] = "togglestand",["507770059"] = "move_left",["507770060"] = "move_right",["507770095"] = "throw_space",["507770200"] = "stop_energize",["507770201"] = "e_glitchlevitate",["507770202"] = "e_moondance",["507770203"] = "e_spindance",["507770204"] = "e_barrelroll",["507770205"] = "e_insane",["507770206"] = "e_dinowalk",
+    ["507770207"] = "e_floorcrawl",["507770208"] = "e_helicopter",["507770209"] = "e_dab",["507770210"] = "e_levitate",["507770211"] = "e_megainsane",["507770212"] = "e_fullpunch",["507770213"] = "e_headthrow",["507770214"] = "e_crouch",["507770215"] = "e_floatinghead", ["507770216"] = "e_jumpingjacks",["507770217"] = "e_faint",["507770218"] = "e_floorfaint",["507770219"] = "e_superfaint",["507770220"] = "e_spinner",["507770221"] = "e_floatsit",["507770222"] = "e_movingdance",["507770223"] = "e_weirdmove",["507770224"] = "e_spindance2",
+    ["507770225"] = "e_bowdown",["507770226"] = "e_swordslam",["507770227"] = "e_superpunch",["507770228"] = "e_fullswing", ["507770229"] = "e_scared",["507770230"] = "e_armdetach",["507770231"] = "e_swordslice",["507770232"] = "e_insanearms",["507770233"] = "e_cloneillusion", ["507770234"] = "e_loophead",["507770235"] = "e_loopslam",["507770236"] = "e_herojump"
 }
 
 local function updateStatus(text, color)
@@ -830,618 +792,286 @@ local function broadcastSignal(id)
     end
 end
 
-Tabs.Connect:CreateSection("Real Controller")
-Tabs.Connect:CreateInput({
-    Name = "Controller (this person will control u)",
-    PlaceholderText = "Type Main Name",
-    Callback = function(value)
+local MainTab = venyx:addPage("Connect", 5012544693)
+local SectionReal = MainTab:addSection("Real Controller")
+
+SectionReal:addTextbox("Controller (this person will control u)", "Type Main Name", function(value, focusLost)
+    if focusLost then
         realControllerInput = value
     end
-})
-Tabs.Connect:CreateButton({
-    Name = "Connect",
-    Callback = function()
-        local t = findPlayerPartial(realControllerInput)
-        if t and t ~= LocalPlayer then
-            controllerPlayer = t
-            followTargetPlayer = t
-            isControlled = true
-            initSignalListener(t)
-            updateStatus("CONTROLLED (by " .. t.Name .. ")", Color3.fromRGB(255, 50, 50))
-            Notify("Submitted", "Now obeying " .. t.Name)
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and t.Character and t.Character:FindFirstChild("HumanoidRootPart") then
-                LocalPlayer.Character.HumanoidRootPart.CFrame = t.Character.HumanoidRootPart.CFrame * CFrame.new(followXOffset, 0, 3)
-            end
-        else
-            Notify("Error", "Player invalid or not found")
-        end
-    end
-})
+end)
 
-Tabs.Connect:CreateSection("Fake Controller")
-Tabs.Connect:CreateInput({
-    Name = "flex (will listen to real control)",
-    PlaceholderText = "Type Target Name",
-    Callback = function(value)
+SectionReal:addButton("Connect", function()
+    local t = findPlayerPartial(realControllerInput)
+    if t and t ~= LocalPlayer then
+        controllerPlayer = t
+        followTargetPlayer = t
+        isControlled = true
+        initSignalListener(t)
+        updateStatus("CONTROLLED (by " .. t.Name .. ")", Color3.fromRGB(255, 50, 50))
+        Notify("Submitted", "Now obeying " .. t.Name)
+        
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and t.Character and t.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = t.Character.HumanoidRootPart.CFrame * CFrame.new(followXOffset, 0, 3)
+        end
+    else
+        Notify("Error", "Player invalid or not found")
+    end
+end)
+
+local SectionFake = MainTab:addSection("Fake Controller")
+
+SectionFake:addTextbox("flex (will listen to real control)", "Type Target Name", function(value, focusLost)
+    if focusLost then
         fakeControllerInput = value
     end
-})
-Tabs.Connect:CreateButton({
-    Name = "Goto & Spectate",
-    Callback = function()
-        local t = findPlayerPartial(fakeControllerInput)
-        if t then
-            Notify("Spectating", "Target found: " .. t.Name)
-            if t.Character and t.Character:FindFirstChild("Humanoid") then
-                workspace.CurrentCamera.CameraSubject = t.Character.Humanoid
-            end
-            followTargetPlayer = t
-            flingTargetPlayer = t
-        else
-            Notify("Error", "Player not found.")
+end)
+
+SectionFake:addButton("Goto & Spectate", function()
+    local t = findPlayerPartial(fakeControllerInput)
+    if t then
+        Notify("Spectating", "Target found: " .. t.Name)
+        
+        if t.Character and t.Character:FindFirstChild("Humanoid") then
+            workspace.CurrentCamera.CameraSubject = t.Character.Humanoid
+        end
+        followTargetPlayer = t
+        flingTargetPlayer = t
+    else
+        Notify("Error", "Player not found.")
+    end
+end)
+
+SectionFake:addButton("Reset Camera", function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        workspace.CurrentCamera.CameraSubject = LocalPlayer.Character.Humanoid
+    end
+end)
+
+local RemoteTab = venyx:addPage("Controls", 5012544693)
+
+local AnimSection = RemoteTab:addSection("Energize Animations")
+AnimSection:addToggle("Glitch Levitate", nil, function(v) if v then broadcastSignal("507770201") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Moon Dance", nil, function(v) if v then broadcastSignal("507770202") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Spin Dance", nil, function(v) if v then broadcastSignal("507770203") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Barrel Roll", nil, function(v) if v then broadcastSignal("507770204") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Insane", nil, function(v) if v then broadcastSignal("507770205") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Dino Walk", nil, function(v) if v then broadcastSignal("507770206") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Floor Crawl", nil, function(v) if v then broadcastSignal("507770207") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Helicopter", nil, function(v) if v then broadcastSignal("507770208") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Dab", nil, function(v) if v then broadcastSignal("507770209") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Levitate", nil, function(v) if v then broadcastSignal("507770210") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Mega Insane", nil, function(v) if v then broadcastSignal("507770211") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Full Punch", nil, function(v) if v then broadcastSignal("507770212") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Head Throw", nil, function(v) if v then broadcastSignal("507770213") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Crouch", nil, function(v) if v then broadcastSignal("507770214") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Floating Head", nil, function(v) if v then broadcastSignal("507770215") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Jumping Jacks", nil, function(v) if v then broadcastSignal("507770216") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Faint", nil, function(v) if v then broadcastSignal("507770217") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Floor Faint", nil, function(v) if v then broadcastSignal("507770218") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Super Faint", nil, function(v) if v then broadcastSignal("507770219") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Spinner", nil, function(v) if v then broadcastSignal("507770220") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Float Sit", nil, function(v) if v then broadcastSignal("507770221") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Moving Dance", nil, function(v) if v then broadcastSignal("507770222") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Weird Move", nil, function(v) if v then broadcastSignal("507770223") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Spin Dance 2", nil, function(v) if v then broadcastSignal("507770224") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Bow Down", nil, function(v) if v then broadcastSignal("507770225") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Sword Slam", nil, function(v) if v then broadcastSignal("507770226") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Super Punch", nil, function(v) if v then broadcastSignal("507770227") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Full Swing", nil, function(v) if v then broadcastSignal("507770228") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Scared", nil, function(v) if v then broadcastSignal("507770229") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Arm Detach", nil, function(v) if v then broadcastSignal("507770230") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Sword Slice", nil, function(v) if v then broadcastSignal("507770231") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Insane Arms", nil, function(v) if v then broadcastSignal("507770232") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Clone Illusion", nil, function(v) if v then broadcastSignal("507770233") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Loop Head", nil, function(v) if v then broadcastSignal("507770234") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Loop Slam", nil, function(v) if v then broadcastSignal("507770235") else broadcastSignal("507770200") end end)
+AnimSection:addToggle("Hero Jump", nil, function(v) if v then broadcastSignal("507770236") else broadcastSignal("507770200") end end)
+
+local MoveSection = RemoteTab:addSection("Movement Actions")
+MoveSection:addButton("Bring Controlled", function() broadcastSignal("507770239") end)
+MoveSection:addButton("Stand Mode (Reset)", function() broadcastSignal("507771019") end)
+MoveSection:addButton("Toggle Stand Follow", function() broadcastSignal("507770058") end)
+MoveSection:addButton("Move Left", function() broadcastSignal("507770059") end)
+MoveSection:addButton("Move Right", function() broadcastSignal("507770060") end)
+MoveSection:addButton("Orbit Mode", function() broadcastSignal("507770015") end)
+MoveSection:addButton("Jump", function() broadcastSignal("507770453") end)
+MoveSection:addButton("Sit", function() broadcastSignal("507770013") end)
+MoveSection:addButton("Trip (Ragdoll)", function() broadcastSignal("507770014") end)
+MoveSection:addButton("Freeze", function() broadcastSignal("507770011") end)
+MoveSection:addButton("Unfreeze", function() broadcastSignal("507770012") end)
+MoveSection:addButton("Float Up", function() broadcastSignal("507770033") end)
+MoveSection:addButton("Sink Floor", function() broadcastSignal("507770034") end)
+MoveSection:addButton("Rocket Launch", function() broadcastSignal("507770038") end)
+MoveSection:addButton("Throw to Space", function() broadcastSignal("507770095") end)
+
+local VisualSection = RemoteTab:addSection("Visuals & Effects")
+VisualSection:addButton("Blind Him", function() broadcastSignal("507765000") end)
+VisualSection:addButton("Jumpscare", function() broadcastSignal("507776879") end)
+VisualSection:addButton("Blur Screen", function() broadcastSignal("507770021") end)
+VisualSection:addButton("Unblur Screen", function() broadcastSignal("507770022") end)
+VisualSection:addButton("Screen Shake (Fixed)", function() broadcastSignal("507770023") end)
+VisualSection:addButton("Force 1st Person", function() broadcastSignal("507770024") end)
+VisualSection:addButton("Fix Camera", function() broadcastSignal("507770025") end)
+VisualSection:addButton("High FOV", function() broadcastSignal("507770045") end)
+VisualSection:addButton("Low FOV (Zoom)", function() broadcastSignal("507770046") end)
+VisualSection:addButton("Rainbow Skin", function() broadcastSignal("507770041") end)
+VisualSection:addButton("Stop Rainbow", function() broadcastSignal("507770042") end)
+VisualSection:addButton("Invisible (Ghost)", function() broadcastSignal("507770043") end)
+VisualSection:addButton("Visible (Reset)", function() broadcastSignal("507770044") end)
+
+local BodySection = RemoteTab:addSection("Body Modifications")
+BodySection:addButton("Headless", function() broadcastSignal("507770017") end)
+BodySection:addButton("Remove Arms", function() broadcastSignal("507770018") end)
+BodySection:addButton("Naked", function() broadcastSignal("507770032") end)
+BodySection:addButton("Block Head", function() broadcastSignal("507770039") end)
+BodySection:addButton("Creepy Crawl", function() broadcastSignal("507770040") end)
+BodySection:addButton("Spinbot", function() broadcastSignal("507772104") end)
+BodySection:addButton("Spasm/Glitch", function() broadcastSignal("507770030") end)
+BodySection:addButton("Friend Mode", function() broadcastSignal("507770035") end)
+BodySection:addButton("Unfriend", function() broadcastSignal("507770036") end)
+
+local DestructSection = RemoteTab:addSection("Destructive")
+DestructSection:addButton("Kill", function() broadcastSignal("507770818") end)
+DestructSection:addButton("Explode", function() broadcastSignal("507770019") end)
+DestructSection:addButton("Void N Fix", function() broadcastSignal("507771955") end)
+DestructSection:addButton("Fling Nearest (To Master)", function() broadcastSignal("507771666") end)
+DestructSection:addButton("Kick", function() broadcastSignal("507770020") end)
+
+local EnvSection = RemoteTab:addSection("Environment")
+EnvSection:addButton("Slow Walk", function() broadcastSignal("507770026") end)
+EnvSection:addButton("Super Speed", function() broadcastSignal("507770027") end)
+EnvSection:addButton("Low Gravity", function() broadcastSignal("507770028") end)
+EnvSection:addButton("Reset Physics/Speed", function() broadcastSignal("507770031") end)
+EnvSection:addButton("Bow", function() broadcastSignal("507770037") end)
+EnvSection:addButton("Free All", function() broadcastSignal("507766388") end)
+
+local TrollSection = RemoteTab:addSection("Trolling")
+TrollSection:addButton("Drunk Mode", function() broadcastSignal("507770047") end)
+TrollSection:addButton("Sober", function() broadcastSignal("507770048") end)
+TrollSection:addButton("Fake Lag", function() broadcastSignal("507770049") end)
+TrollSection:addButton("Anti-Sit (Forced Jump)", function() broadcastSignal("507770050") end)
+TrollSection:addButton("Confuse Inputs", function() broadcastSignal("507770054") end)
+TrollSection:addButton("Clarity", function() broadcastSignal("507770055") end)
+TrollSection:addButton("Send Randomized Msg", function() broadcastSignal("507770051") end)
+
+local FeSection = RemoteTab:addSection("FE Exploits")
+FeSection:addButton("Toggle FE Invis (Controlled)", function() broadcastSignal("507770056") end)
+FeSection:addButton("Toggle Speed Boost (Controlled)", function() broadcastSignal("507770057") end)
+
+local FlingPage = venyx:addPage("Fling", 5012544693)
+local FlingSection = FlingPage:addSection("Fling Logic")
+FlingSection:addToggle("Toggle Fling Loop", nil, function(Value)
+    hiddenfling = Value
+    if not hiddenfling then
+        flingTargetPlayer = nil
+    end
+end)
+FlingSection:addSlider("Fling Power", 10000, 1000, 50000, function(Value)
+    flingPower = Value
+end)
+
+local ExecutorPage = venyx:addPage("Executor", 5012544693)
+local ExecSection = ExecutorPage:addSection("Remote Command")
+
+ExecSection:addTextbox("Command Name", "e.g. kill", function(value, focusLost)
+    remoteCmdInput = value
+end)
+
+ExecSection:addButton("Run on Victim", function()
+    local foundID = nil
+    for id, cmdName in pairs(SIGNALS) do
+        if cmdName == remoteCmdInput then
+            foundID = id
+            break
         end
     end
-})
-Tabs.Connect:CreateButton({
-    Name = "Reset Camera",
-    Callback = function()
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-            workspace.CurrentCamera.CameraSubject = LocalPlayer.Character.Humanoid
+    
+    if foundID then
+        broadcastSignal(foundID)
+        Notify("Remote Exec", "Executed: " .. remoteCmdInput)
+    else
+        Notify("Remote Exec", "Command not found in SIGNALS list.")
+    end
+end)
+
+local SettingsPage = venyx:addPage("Settings", 5012544693)
+local MiscSection = SettingsPage:addSection("Misc")
+MiscSection:addButton("Toggle Status Bar", function()
+    StatusGui.Enabled = not StatusGui.Enabled
+end)
+MiscSection:addKeybind("Toggle GUI", Enum.KeyCode.RightControl, function()
+    venyx:toggle()
+end)
+
+MiscSection:addButton("Hide GUI (Mobile Toggle)", function()
+    venyx:toggle()
+    local toggleGui = Instance.new("ScreenGui")
+    toggleGui.Name = "VenyxMobileButton"
+    toggleGui.ResetOnSpawn = false
+    toggleGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+    local btn = Instance.new("TextButton")
+    btn.Parent = toggleGui
+    btn.Size = UDim2.new(0, 60, 0, 30)
+    btn.Position = UDim2.new(0, 10, 0.5, -15)
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Text = "OPEN"
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 12
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = btn
+    local dragStart = nil
+    local startPos = nil
+    local isDragging = false
+    local dragInput = nil
+    btn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isDragging = true
+            dragStart = input.Position
+            startPos = btn.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    isDragging = false
+                end
+            end)
         end
-    end
-})
-
-Tabs.Controls:CreateSection("Energize Animations")
-Tabs.Controls:CreateToggle({
-    Name = "Glitch Levitate",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770201") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Moon Dance",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770202") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Spin Dance",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770203") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Barrel Roll",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770204") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Insane",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770205") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Dino Walk",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770206") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Floor Crawl",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770207") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Helicopter",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770208") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Dab",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770209") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Levitate",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770210") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Mega Insane",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770211") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Full Punch",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770212") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Head Throw",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770213") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Crouch",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770214") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Floating Head",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770215") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Jumping Jacks",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770216") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Faint",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770217") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Floor Faint",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770218") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Super Faint",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770219") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Spinner",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770220") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Float Sit",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770221") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Moving Dance",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770222") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Weird Move",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770223") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Spin Dance 2",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770224") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Bow Down",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770225") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Sword Slam",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770226") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Super Punch",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770227") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Full Swing",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770228") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Scared",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770229") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Arm Detach",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770230") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Sword Slice",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770231") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Insane Arms",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770232") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Clone Illusion",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770233") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Loop Head",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770234") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Loop Slam",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770235") else broadcastSignal("507770200") end end
-})
-Tabs.Controls:CreateToggle({
-    Name = "Hero Jump",
-    CurrentValue = false,
-    Callback = function(v) if v then broadcastSignal("507770236") else broadcastSignal("507770200") end end
-})
-
-Tabs.Controls:CreateSection("Movement Actions")
-Tabs.Controls:CreateButton({
-    Name = "Bring Controlled",
-    Callback = function() broadcastSignal("507770239") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Stand Mode (Reset)",
-    Callback = function() broadcastSignal("507771019") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Toggle Stand Follow",
-    Callback = function() broadcastSignal("507770058") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Move Left",
-    Callback = function() broadcastSignal("507770059") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Move Right",
-    Callback = function() broadcastSignal("507770060") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Orbit Mode",
-    Callback = function() broadcastSignal("507770015") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Jump",
-    Callback = function() broadcastSignal("507770453") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Sit",
-    Callback = function() broadcastSignal("507770013") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Trip (Ragdoll)",
-    Callback = function() broadcastSignal("507770014") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Freeze",
-    Callback = function() broadcastSignal("507770011") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Unfreeze",
-    Callback = function() broadcastSignal("507770012") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Float Up",
-    Callback = function() broadcastSignal("507770033") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Sink Floor",
-    Callback = function() broadcastSignal("507770034") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Rocket Launch",
-    Callback = function() broadcastSignal("507770038") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Throw to Space",
-    Callback = function() broadcastSignal("507770095") end
-})
-
-Tabs.Controls:CreateSection("Visuals & Effects")
-Tabs.Controls:CreateButton({
-    Name = "Blind Him",
-    Callback = function() broadcastSignal("507765000") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Jumpscare",
-    Callback = function() broadcastSignal("507776879") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Blur Screen",
-    Callback = function() broadcastSignal("507770021") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Unblur Screen",
-    Callback = function() broadcastSignal("507770022") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Screen Shake (Fixed)",
-    Callback = function() broadcastSignal("507770023") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Force 1st Person",
-    Callback = function() broadcastSignal("507770024") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Fix Camera",
-    Callback = function() broadcastSignal("507770025") end
-})
-Tabs.Controls:CreateButton({
-    Name = "High FOV",
-    Callback = function() broadcastSignal("507770045") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Low FOV (Zoom)",
-    Callback = function() broadcastSignal("507770046") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Rainbow Skin",
-    Callback = function() broadcastSignal("507770041") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Stop Rainbow",
-    Callback = function() broadcastSignal("507770042") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Invisible (Ghost)",
-    Callback = function() broadcastSignal("507770043") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Visible (Reset)",
-    Callback = function() broadcastSignal("507770044") end
-})
-
-Tabs.Controls:CreateSection("Body Modifications")
-Tabs.Controls:CreateButton({
-    Name = "Headless",
-    Callback = function() broadcastSignal("507770017") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Remove Arms",
-    Callback = function() broadcastSignal("507770018") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Naked",
-    Callback = function() broadcastSignal("507770032") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Block Head",
-    Callback = function() broadcastSignal("507770039") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Creepy Crawl",
-    Callback = function() broadcastSignal("507770040") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Spinbot",
-    Callback = function() broadcastSignal("507772104") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Spasm/Glitch",
-    Callback = function() broadcastSignal("507770030") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Friend Mode",
-    Callback = function() broadcastSignal("507770035") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Unfriend",
-    Callback = function() broadcastSignal("507770036") end
-})
-
-Tabs.Controls:CreateSection("Destructive")
-Tabs.Controls:CreateButton({
-    Name = "Kill",
-    Callback = function() broadcastSignal("507770818") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Explode",
-    Callback = function() broadcastSignal("507770019") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Void N Fix",
-    Callback = function() broadcastSignal("507771955") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Fling Nearest (To Main)",
-    Callback = function() broadcastSignal("507771666") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Kick",
-    Callback = function() broadcastSignal("507770020") end
-})
-
-Tabs.Controls:CreateSection("Environment")
-Tabs.Controls:CreateButton({
-    Name = "Slow Walk",
-    Callback = function() broadcastSignal("507770026") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Super Speed",
-    Callback = function() broadcastSignal("507770027") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Low Gravity",
-    Callback = function() broadcastSignal("507770028") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Reset Physics/Speed",
-    Callback = function() broadcastSignal("507770031") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Bow",
-    Callback = function() broadcastSignal("507770037") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Free All",
-    Callback = function() broadcastSignal("507766388") end
-})
-
-Tabs.Controls:CreateSection("Trolling")
-Tabs.Controls:CreateButton({
-    Name = "Drunk Mode",
-    Callback = function() broadcastSignal("507770047") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Sober",
-    Callback = function() broadcastSignal("507770048") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Fake Lag",
-    Callback = function() broadcastSignal("507770049") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Anti-Sit (Forced Jump)",
-    Callback = function() broadcastSignal("507770050") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Confuse Inputs",
-    Callback = function() broadcastSignal("507770054") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Clarity",
-    Callback = function() broadcastSignal("507770055") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Send Randomized Msg",
-    Callback = function() broadcastSignal("507770051") end
-})
-
-Tabs.Controls:CreateSection("FE Exploits")
-Tabs.Controls:CreateButton({
-    Name = "Toggle FE Invis (Controlled)",
-    Callback = function() broadcastSignal("507770056") end
-})
-Tabs.Controls:CreateButton({
-    Name = "Toggle Speed Boost (Controlled)",
-    Callback = function() broadcastSignal("507770057") end
-})
-
-Tabs.Fling:CreateSection("Fling Logic")
-Tabs.Fling:CreateToggle({
-    Name = "Toggle Fling Loop",
-    CurrentValue = false,
-    Callback = function(Value)
-        hiddenfling = Value
-        if not hiddenfling then
-            flingTargetPlayer = nil
+    end)
+    btn.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
         end
-    end
-})
-Tabs.Fling:CreateSlider({
-    Name = "Fling Power",
-    Range = {1000, 50000},
-    Increment = 100,
-    CurrentValue = 10000,
-    Callback = function(Value)
-        flingPower = Value
-    end
-})
-
-Tabs.Executor:CreateSection("Remote Command")
-Tabs.Executor:CreateInput({
-    Name = "Command Name",
-    PlaceholderText = "e.g. kill",
-    Callback = function(value)
-        remoteCmdInput = value
-    end
-})
-Tabs.Executor:CreateButton({
-    Name = "Run on Victim",
-    Callback = function()
-        local foundID = nil
-        for id, cmdName in pairs(SIGNALS) do
-            if cmdName == remoteCmdInput then
-                foundID = id
-                break
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and isDragging then
+            local delta = input.Position - dragStart
+            btn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    btn.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if dragStart and (input.Position - dragStart).Magnitude <= 5 then
+                venyx:toggle()
+                toggleGui:Destroy()
             end
         end
-        if foundID then
-            broadcastSignal(foundID)
-            Notify("Remote Exec", "Executed: " .. remoteCmdInput)
-        else
-            Notify("Remote Exec", "Command not found in SIGNALS list.")
-        end
-    end
-})
+    end)
+end)
 
-Tabs.Settings:CreateSection("Misc")
-Tabs.Settings:CreateButton({
-    Name = "Toggle Status Bar",
-    Callback = function()
-        StatusGui.Enabled = not StatusGui.Enabled
-    end
-})
-Tabs.Settings:CreateBind({
-    Name = "Toggle GUI",
-    CurrentKeybind = "RightControl",
-    Callback = function()
-        Window:Toggle()
-    end
-})
-Tabs.Settings:CreateButton({
-    Name = "Hide GUI (Mobile Toggle)",
-    Callback = function()
-        Window:Toggle()
-        if not LocalPlayer:WaitForChild("PlayerGui"):FindFirstChild("LunaMobileButton") then
-            local toggleGui = Instance.new("ScreenGui")
-            toggleGui.Name = "LunaMobileButton"
-            toggleGui.ResetOnSpawn = false
-            toggleGui.Parent = LocalPlayer.PlayerGui
+local ThemeSection = SettingsPage:addSection("Theme")
+local themes = {
+    Background = Color3.fromRGB(24, 24, 24),
+    Glow = Color3.fromRGB(0, 0, 0),
+    Accent = Color3.fromRGB(10, 10, 10),
+    LightContrast = Color3.fromRGB(20, 20, 20),
+    DarkContrast = Color3.fromRGB(14, 14, 14),  
+    TextColor = Color3.fromRGB(255, 255, 255)
+}
+for theme, color in pairs(themes) do
+    ThemeSection:addColorPicker(theme, color, function(color3)
+        venyx:setTheme(theme, color3)
+    end)
+end
 
-            local btn = Instance.new("TextButton")
-            btn.Parent = toggleGui
-            btn.Size = UDim2.new(0, 60, 0, 30)
-            btn.Position = UDim2.new(0, 10, 0.5, -15)
-            btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            btn.Text = "OPEN"
-            btn.Font = Enum.Font.GothamBold
-            btn.TextSize = 12
-            
-            local corner = Instance.new("UICorner")
-            corner.CornerRadius = UDim.new(0, 6)
-            corner.Parent = btn
-            
-            local dragStart = nil
-            local startPos = nil
-            local isDragging = false
-            local dragInput = nil
-            
-            btn.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    isDragging = true
-                    dragStart = input.Position
-                    startPos = btn.Position
-                    input.Changed:Connect(function()
-                        if input.UserInputState == Enum.UserInputState.End then
-                            isDragging = false
-                        end
-                    end)
-                end
-            end)
-            btn.InputChanged:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-                    dragInput = input
-                end
-            end)
-            UserInputService.InputChanged:Connect(function(input)
-                if input == dragInput and isDragging then
-                    local delta = input.Position - dragStart
-                    btn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-                end
-            end)
-            btn.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    if dragStart and (input.Position - dragStart).Magnitude <= 5 then
-                        Window:Toggle()
-                        toggleGui:Destroy()
-                    end
-                end
-            end)
-        end
-    end
-})
-
-Tabs.Settings:CreateSection("Theme")
-Tabs.Settings:BuildThemeSection()
-
-Tabs.Settings:BuildConfigSection()
+venyx:SelectPage(venyx.pages[1], true)
