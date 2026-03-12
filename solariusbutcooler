@@ -935,7 +935,7 @@ local DestructSection = RemoteTab:addSection("Destructive")
 DestructSection:addButton("Kill", function() broadcastSignal("507770818") end)
 DestructSection:addButton("Explode", function() broadcastSignal("507770019") end)
 DestructSection:addButton("Void N Fix", function() broadcastSignal("507771955") end)
-DestructSection:addButton("Fling Nearest (To Master)", function() broadcastSignal("507771666") end)
+DestructSection:addButton("Fling Nearest (To Main)", function() broadcastSignal("507771666") end)
 DestructSection:addButton("Kick", function() broadcastSignal("507770020") end)
 
 local EnvSection = RemoteTab:addSection("Environment")
