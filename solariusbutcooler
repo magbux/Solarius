@@ -1,3 +1,61 @@
+local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/AmeloxRUS/guiluna/refs/heads/main/luna", true))()
+local Window = Luna:CreateWindow({
+    Name = "Solarius Controller",
+    Subtitle = "By idk",
+    LogoID = "5013109572",
+    LoadingEnabled = false,
+    KeySystem = false
+})
+
+Luna:Notification({ 
+    Title = "Welcome",
+    Icon = "sparkle",
+    ImageSource = "Material",
+    Content = "Solarius Controller Loaded"
+})
+
+local Tabs = {
+    Connect = Window:CreateTab({
+        Name = "Connect",
+        Icon = "link",
+        ImageSource = "Material",
+        ShowTitle = true
+    }),
+    Controls = Window:CreateTab({
+        Name = "Controls",
+        Icon = "gamepad",
+        ImageSource = "Material",
+        ShowTitle = true
+    }),
+    Fling = Window:CreateTab({
+        Name = "Fling",
+        Icon = "airplanemode_active",
+        ImageSource = "Material",
+        ShowTitle = true
+    }),
+    Executor = Window:CreateTab({
+        Name = "Executor",
+        Icon = "code",
+        ImageSource = "Material",
+        ShowTitle = true
+    }),
+    Settings = Window:CreateTab({
+        Name = "Settings",
+        Icon = "settings",
+        ImageSource = "Material",
+        ShowTitle = true
+    })
+}
+
+local function Notify(title, content)
+    Luna:Notification({ 
+        Title = title,
+        Icon = "info",
+        ImageSource = "Material",
+        Content = content
+    })
+end
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -35,6 +93,1368 @@ local isBusy = false
 local signalConnection = nil
 local standEnabled = true 
 local followXOffset = 0
+
+local invis_on = false
+local defaultSpeed = 16
+local boostedSpeed = 48
+local isSpeedBoosted = false
+
+local energizeTrack = nil
+local energizeLoop = nil
+local realControllerInput = ""
+local fakeControllerInput = "" 
+local remoteCmdInput = ""
+
+local invisSound = Instance.new("Sound", LocalPlayer:WaitForChild("PlayerGui"))
+invisSound.SoundId = "rbxassetid://942127495"
+invisSound.Volume = 1
+
+if not ReplicatedStorage:FindFirstChild("juisdfj0i32i0eidsuf0iok") then
+    local detection = Instance.new("Decal")
+    detection.Name = "juisdfj0i32i0eidsuf0iok"
+    detection.Parent = ReplicatedStorage
+end
+
+local function fling()
+    local hrp, c, vel, movel = nil, nil, nil, 0.1
+    while true do
+        RunService.Heartbeat:Wait()
+        if hiddenfling then
+            while hiddenfling and not (c and c.Parent and hrp and hrp.Parent) do
+                RunService.Heartbeat:Wait()
+                c = LocalPlayer.Character
+                hrp = c and c:FindFirstChild("HumanoidRootPart")
+            end
+            if hiddenfling then
+                if flingTargetPlayer and flingTargetPlayer.Character and flingTargetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    hrp.CFrame = flingTargetPlayer.Character.HumanoidRootPart.CFrame
+                end
+                vel = hrp.Velocity
+                hrp.Velocity = vel * flingPower + Vector3.new(0, flingPower, 0)
+                RunService.RenderStepped:Wait()
+                if c and c.Parent and hrp and hrp.Parent then
+                    hrp.Velocity = vel
+                end
+                RunService.Stepped:Wait()
+                if c and c.Parent and hrp and hrp.Parent then
+                    hrp.Velocity = vel + Vector3.new(0, movel, 0)
+                    movel = movel * -1
+                end
+            end
+        end
+    end
+end
+task.spawn(fling)
+
+local StatusGui = Instance.new("ScreenGui")
+StatusGui.Name = "VenusStatus"
+StatusGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+StatusGui.ResetOnSpawn = false
+
+local StatusFrame = Instance.new("Frame")
+StatusFrame.Size = UDim2.new(0, 300, 0, 30)
+StatusFrame.Position = UDim2.new(0.5, -150, 0, 10)
+StatusFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+StatusFrame.BorderSizePixel = 0
+StatusFrame.Parent = StatusGui
+
+local StatusCorner = Instance.new("UICorner")
+StatusCorner.CornerRadius = UDim.new(0, 6)
+StatusCorner.Parent = StatusFrame
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(1, 0, 1, 0)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "STATUS: FREE"
+StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+StatusLabel.Font = Enum.Font.GothamBold
+StatusLabel.TextSize = 14
+StatusLabel.Parent = StatusFrame
+
+local SIGNALS = {
+    ["507770239"] = "bring",["507770453"] = "jump",["507770818"] = "kill",["507771019"] = "stand",["507771955"] = "void",["507772104"] = "spin",["507776879"] = "jumpscare",["507766388"] = "free",
+    ["507771666"] = "fling_nearest",["507765000"] = "blackout",["507770011"] = "freeze",["507770012"] = "unfreeze",["507770013"] = "sit",["507770014"] = "trip",["507770015"] = "orbit",["507770016"] = "stop_orbit",["507770017"] = "headless",["507770018"] = "noarms",["507770019"] = "explode",["507770020"] = "fakekick",["507770021"] = "blur",["507770022"] = "unblur",["507770023"] = "screenshake",["507770024"] = "force1st",
+    ["507770025"] = "fixcam",["507770026"] = "slow",["507770027"] = "fast",["507770028"] = "lowgrav",["507770029"] = "normgrav",["507770030"] = "spasm",["507770031"] = "unglitch",["507770032"] = "naked",
+    ["507770033"] = "float",["507770034"] = "sink",["507770035"] = "dog",["507770036"] = "undog",["507770037"] = "worship",["507770038"] = "rocket",["507770039"] = "blockhead",["507770040"] = "creepy",["507770041"] = "rainbow",["507770042"] = "unrainbow",["507770043"] = "ghost",["507770044"] = "unghost",["507770045"] = "highfov",["507770046"] = "lowfov",["507770047"] = "drunk",["507770048"] = "sober",["507770049"] = "fakelag",["507770050"] = "antisit", ["507770051"] = "mock",["507770052"] = "earthquake",["507770053"] = "normalfov",["507770054"] = "confuse",["507770055"] = "clarity",["507770056"] = "feinvis",
+    ["507770057"] = "fespeed",["507770058"] = "togglestand",["507770059"] = "move_left",["507770060"] = "move_right",["507770095"] = "throw_space",["507770200"] = "stop_energize",["507770201"] = "e_glitchlevitate",["507770202"] = "e_moondance",["507770203"] = "e_spindance",["507770204"] = "e_barrelroll",["507770205"] = "e_insane",["507770206"] = "e_dinowalk",
+    ["507770207"] = "e_floorcrawl",["507770208"] = "e_helicopter",["507770209"] = "e_dab",["507770210"] = "e_levitate",["507770211"] = "e_megainsane",["507770212"] = "e_fullpunch",["507770213"] = "e_headthrow",["507770214"] = "e_crouch",["507770215"] = "e_floatinghead", ["507770216"] = "e_jumpingjacks",["507770217"] = "e_faint",["507770218"] = "e_floorfaint",["507770219"] = "e_superfaint",["507770220"] = "e_spinner",["507770221"] = "e_floatsit",["507770222"] = "e_movingdance",["507770223"] = "e_weirdmove",["507770224"] = "e_spindance2",
+    ["507770225"] = "e_bowdown",["507770226"] = "e_swordslam",["507770227"] = "e_superpunch",["507770228"] = "e_fullswing", ["507770229"] = "e_scared",["507770230"] = "e_armdetach",["507770231"] = "e_swordslice",["507770232"] = "e_insanearms",["507770233"] = "e_cloneillusion", ["507770234"] = "e_loophead",["507770235"] = "e_loopslam",["507770236"] = "e_herojump"
+}
+
+local function updateStatus(text, color)
+    StatusLabel.Text = text
+    StatusLabel.TextColor3 = color
+end
+
+local function getNearestPlayerTo(targetP)
+    local closest = nil
+    local dist = 999999
+    if targetP and targetP.Character and targetP.Character:FindFirstChild("HumanoidRootPart") then
+        local tPos = targetP.Character.HumanoidRootPart.Position
+        for _, p in pairs(Players:GetPlayers()) do
+            if p \~= LocalPlayer and p \~= targetP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                local d = (p.Character.HumanoidRootPart.Position - tPos).Magnitude
+                if d < dist then
+                    dist = d
+                    closest = p
+                end
+            end
+        end
+    end
+    return closest
+end
+
+local function findPlayerPartial(text)
+    for _, p in pairs(Players:GetPlayers()) do
+        if string.find(string.lower(p.Name), string.lower(text)) or string.find(string.lower(p.DisplayName), string.lower(text)) then
+            return p
+        end
+    end
+    return nil
+end
+
+local function triggerJumpscare()
+    local sc = Instance.new("ScreenGui")
+    sc.Name = "JumpscareGUI"
+    sc.Parent = LocalPlayer.PlayerGui
+    sc.IgnoreGuiInset = true
+    local img = Instance.new("ImageLabel")
+    img.Parent = sc
+    img.Size = UDim2.new(1,0,1,0)
+    img.Image = "rbxassetid://5565362953"
+    img.BackgroundColor3 = Color3.new(0,0,0)
+    local snd = Instance.new("Sound")
+    snd.Parent = sc
+    snd.SoundId = "rbxassetid://9120339906"
+    snd.Volume = 10
+    snd.PlayOnRemove = true
+    snd:Play()
+    task.wait(2)
+    sc:Destroy()
+end
+
+local function setInvisTransparency(transparency)
+    local char = LocalPlayer.Character
+    if char then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") or part:IsA("Decal") then
+                part.Transparency = transparency
+            end
+        end
+    end
+end
+
+local function toggleInvisLogic()
+    invis_on = not invis_on
+    invisSound:Play()
+    if invis_on then
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local savedpos = hrp.CFrame
+            task.wait()
+            char:MoveTo(Vector3.new(-25.95, 84, 3537.55))
+            task.wait(0.15)
+            local Seat = Instance.new('Seat', workspace)
+            Seat.Anchored = false
+            Seat.CanCollide = false
+            Seat.Name = 'invischair'
+            Seat.Transparency = 1
+            Seat.Position = Vector3.new(-25.95, 84, 3537.55)
+            local Weld = Instance.new("Weld", Seat)
+            Weld.Part0 = Seat
+            Weld.Part1 = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+            task.wait()
+            Seat.CFrame = savedpos
+            setInvisTransparency(0.5)
+            Notify("Invis ON", "You are now glitch-invisible.")
+        end
+    else
+        local invisChair = workspace:FindFirstChild('invischair')
+        if invisChair then invisChair:Destroy() end
+        setInvisTransparency(0)
+        Notify("Invis OFF", "Visible again.")
+    end
+end
+
+local function toggleSpeedLogic()
+    isSpeedBoosted = not isSpeedBoosted
+    invisSound:Play()
+    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+    if hum then
+        if isSpeedBoosted then
+            hum.WalkSpeed = boostedSpeed
+            Notify("Speed ON", "Speed set to " .. boostedSpeed)
+        else
+            hum.WalkSpeed = defaultSpeed
+            Notify("Speed OFF", "Speed reset.")
+        end
+    end
+end
+
+LocalPlayer.CharacterAdded:Connect(function(character)
+    isSpeedBoosted = false
+    local humanoid = character:WaitForChild("Humanoid")
+    humanoid.WalkSpeed = defaultSpeed
+end)
+
+local function standLogic()
+    if isControlled and controllerPlayer and followTargetPlayer and followTargetPlayer.Character and followTargetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            if not isBusy and not orbitEnabled and not hiddenfling and standEnabled then
+                local char = LocalPlayer.Character
+                local tRoot = followTargetPlayer.Character.HumanoidRootPart
+                local cRoot = char.HumanoidRootPart
+                local hum = char:FindFirstChild("Humanoid")
+                if hum then
+                    hum:ChangeState(Enum.HumanoidStateType.Physics)
+                end
+                
+                if not standPlatform then
+                    standPlatform = Instance.new("Part")
+                    standPlatform.Size = Vector3.new(4, 0.5, 4)
+                    standPlatform.Transparency = 1
+                    standPlatform.Anchored = true
+                    standPlatform.CanCollide = true
+                    standPlatform.Name = "StandPlatform"
+                    standPlatform.Parent = workspace
+                end
+                
+                local bob = math.sin(tick() * 2) * 0.8
+                
+                local goalCF = tRoot.CFrame * CFrame.new(followXOffset, 3 + bob, 2.5)
+                
+                if dogMode then
+                    goalCF = tRoot.CFrame * CFrame.new(2 + followXOffset, -2, 2)
+                end
+
+                if standPlatform then
+                    standPlatform.CFrame = goalCF * CFrame.new(0, -3, 0)
+                end
+                cRoot.CFrame = cRoot.CFrame:Lerp(goalCF, 0.15)
+                cRoot.Velocity = Vector3.zero
+            elseif orbitEnabled and not hiddenfling then
+                local char = LocalPlayer.Character
+                local tRoot = followTargetPlayer.Character.HumanoidRootPart
+                local cRoot = char.HumanoidRootPart
+                local hum = char:FindFirstChild("Humanoid")
+                if hum then
+                   hum:ChangeState(Enum.HumanoidStateType.Physics) 
+                end
+                local angle = tick() * 3
+                local radius = 8
+                local offset = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+                local goalCF = tRoot.CFrame + offset
+                cRoot.CFrame = CFrame.new(goalCF.Position, tRoot.Position)
+                cRoot.Velocity = Vector3.zero
+            else
+                if standPlatform then standPlatform.CFrame = CFrame.new(0, -500, 0) end
+            end
+        end
+    else
+        if standPlatform then standPlatform:Destroy() standPlatform = nil end
+    end
+end
+RunService.Heartbeat:Connect(standLogic)
+
+RunService.Heartbeat:Connect(function()
+    Camera = workspace.CurrentCamera
+    
+    if spinEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(spinSpeed), 0)
+    end
+    if spasmEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(math.random(-50,50), math.random(-50,50), math.random(-50,50))
+        LocalPlayer.Character.HumanoidRootPart.RotVelocity = Vector3.new(math.random(-20,20), math.random(-20,20), math.random(-20,20))
+    end
+    if shakeEnabled then
+        local intensity = 0.5
+        Camera.CFrame = Camera.CFrame * CFrame.new(math.random() * intensity - (intensity / 2), math.random() * intensity - (intensity / 2), 0)
+    end
+    if rainbowEnabled and LocalPlayer.Character then
+        local color = Color3.fromHSV(tick() % 5 / 5, 1, 1)
+        for _, v in pairs(LocalPlayer.Character:GetChildren()) do
+            if v:IsA("BasePart") then v.Color = color end
+        end
+    end
+    if drunkEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = math.random(5, 25)
+        Camera.CFrame = Camera.CFrame * CFrame.Angles(0, 0, math.rad(math.sin(tick() * 2) * 5))
+    end
+    if antiSitEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        if LocalPlayer.Character.Humanoid.Sit then
+            LocalPlayer.Character.Humanoid.Sit = false
+            LocalPlayer.Character.Humanoid:Jump()
+        end
+    end
+    if fakeLagEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        if math.random(1, 10) > 5 then
+            LocalPlayer.Character.HumanoidRootPart.Anchored = true
+        else
+            LocalPlayer.Character.HumanoidRootPart.Anchored = false
+        end
+    end
+    if confusionEnabled then
+        UserInputService.MouseIconEnabled = false
+        if math.random() > 0.9 and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+             LocalPlayer.Character.Humanoid.Jump = true
+        end
+    else
+        UserInputService.MouseIconEnabled = true
+    end
+    if ghostEnabled and LocalPlayer.Character then
+        for _, v in pairs(LocalPlayer.Character:GetChildren()) do
+            if v:IsA("BasePart") then v.Transparency = 1 end
+            if v:IsA("Decal") then v.Transparency = 1 end
+        end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(0.3)
+        if blackoutEnabled and (not LocalPlayer.PlayerGui:FindFirstChild("BlackoutGui")) then
+            local gui = Instance.new("ScreenGui")
+            gui.Name = "BlackoutGui"
+            gui.ResetOnSpawn = false
+            gui.IgnoreGuiInset = true
+            gui.Parent = LocalPlayer.PlayerGui
+            local frame = Instance.new("Frame")
+            frame.Size = UDim2.new(1, 0, 1, 0)
+            frame.BackgroundColor3 = Color3.new(0, 0, 0)
+            frame.ZIndex = 999
+            frame.Parent = gui
+        end
+    end
+end)
+
+local function stopEnergize()
+    if energizeTrack then
+        energizeTrack:Stop()
+        energizeTrack = nil
+    end
+    if energizeLoop then
+        task.cancel(energizeLoop)
+        energizeLoop = nil
+    end
+end
+
+local function playEnergize(id, speed, weight, loopCount, isLoopingLogic)
+    stopEnergize()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        local anim = Instance.new("Animation")
+        anim.AnimationId = "rbxassetid://" .. id
+        energizeTrack = LocalPlayer.Character.Humanoid:LoadAnimation(anim)
+        
+        if isLoopingLogic then
+            energizeLoop = task.spawn(function()
+                while true do
+                    if energizeTrack and not energizeTrack.IsPlaying then
+                        energizeTrack:Play(0.1, 1, speed) 
+                    end
+                    task.wait()
+                end
+            end)
+            energizeTrack:Play(0.1, 1, speed)
+        else
+            energizeTrack:Play(0.1, 1, speed)
+        end
+    end
+end
+
+local function executeCommand(cmd)
+    if not isControlled then return end
+    Notify("Command", cmd)
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChild("Humanoid")
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+    if cmd == "jump" then
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+    elseif cmd == "bring" then
+        isBusy = true
+        if char and followTargetPlayer and followTargetPlayer.Character then
+            hrp.CFrame = followTargetPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(followXOffset,0,2.5)
+        end
+        task.wait(0.5)
+        isBusy = false
+    elseif cmd == "move_left" then
+        followXOffset = followXOffset - 2
+    elseif cmd == "move_right" then
+        followXOffset = followXOffset + 2
+    elseif cmd == "spin" then
+        spinEnabled = not spinEnabled
+    elseif cmd == "kill" then
+        isBusy = true
+        char:BreakJoints()
+        task.wait(1)
+        isBusy = false
+    elseif cmd == "void" then
+        isBusy = true
+        hrp.CFrame = CFrame.new(0, -500, 0)
+        task.wait(1)
+        isBusy = false
+    elseif cmd == "jumpscare" then
+        triggerJumpscare()
+    elseif cmd == "fling_self" then
+        isBusy = true
+        hiddenfling = true
+        task.wait(2)
+        hiddenfling = false
+        isBusy = false
+    elseif cmd == "fling_nearest" then
+        isBusy = true
+        local nearest = getNearestPlayerTo(followTargetPlayer)
+        if nearest and nearest.Character and nearest.Character:FindFirstChild("HumanoidRootPart") then
+            local oldPower = flingPower
+            flingPower = 50000 
+            flingTargetPlayer = nearest
+            hiddenfling = true
+            Notify("Flinging", "Target: " .. nearest.Name)
+            
+            local t = 0
+            while t < 30 and flingTargetPlayer do 
+                RunService.Heartbeat:Wait()
+                t = t + 1
+            end
+            
+            hiddenfling = false
+            flingTargetPlayer = nil
+            flingPower = oldPower
+            
+            if char and followTargetPlayer and followTargetPlayer.Character then
+                hrp.CFrame = followTargetPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(followXOffset,0,2.5)
+            end
+        end
+        isBusy = false
+    elseif cmd == "stand" then
+        isBusy = false
+        orbitEnabled = false
+        dogMode = false
+        standEnabled = true 
+        followXOffset = 0
+        stopEnergize()
+    elseif cmd == "togglestand" then
+        standEnabled = not standEnabled
+        if not standEnabled and standPlatform then
+            standPlatform.CFrame = CFrame.new(0, -500, 0)
+        end
+        Notify("Stand Toggle", "Following: " .. tostring(standEnabled))
+    elseif cmd == "free" then
+        isControlled = false
+        controllerPlayer = nil
+        followTargetPlayer = nil
+        orbitEnabled = false
+        spasmEnabled = false
+        shakeEnabled = false
+        dogMode = false
+        hiddenfling = false
+        rainbowEnabled = false
+        drunkEnabled = false
+        antiSitEnabled = false
+        fakeLagEnabled = false
+        confusionEnabled = false
+        ghostEnabled = false
+        standEnabled = true
+        flingTargetPlayer = nil
+        followXOffset = 0
+        stopEnergize()
+        if signalConnection then signalConnection:Disconnect() signalConnection = nil end
+        if standPlatform then standPlatform:Destroy() standPlatform = nil end
+        updateStatus("STATUS: FREE", Color3.fromRGB(100, 255, 100))
+        Notify("Freed", "You are no longer controlled.")
+    elseif cmd == "blackout" then
+        blackoutEnabled = not blackoutEnabled
+        if not blackoutEnabled and LocalPlayer.PlayerGui:FindFirstChild("BlackoutGui") then
+            LocalPlayer.PlayerGui.BlackoutGui:Destroy()
+        end
+    elseif cmd == "freeze" then
+        if hrp then hrp.Anchored = true end
+    elseif cmd == "unfreeze" then
+        if hrp then hrp.Anchored = false end
+    elseif cmd == "sit" then
+        if hum then hum.Sit = true end
+    elseif cmd == "trip" then
+        if hum then hum:ChangeState(Enum.HumanoidStateType.FallingDown) end
+    elseif cmd == "orbit" then
+        orbitEnabled = true
+        isBusy = false
+    elseif cmd == "stop_orbit" then
+        orbitEnabled = false
+    elseif cmd == "headless" then
+        if char and char:FindFirstChild("Head") then char.Head.Transparency = 1 if char.Head:FindFirstChild("face") then char.Head.face.Transparency = 1 end end
+    elseif cmd == "noarms" then
+        if char then for _, v in pairs(char:GetChildren()) do if v.Name:find("Arm") or v.Name:find("Hand") then if v:IsA("BasePart") then v.Transparency = 1 end end end end
+    elseif cmd == "naked" then
+        if char then for _, v in pairs(char:GetChildren()) do if v:IsA("Clothing") or v:IsA("ShirtGraphic") or v:IsA("Accessory") then v:Destroy() end end end
+    elseif cmd == "explode" then
+        if hrp then local ex = Instance.new("Explosion") ex.Position = hrp.Position ex.Parent = workspace char:BreakJoints() end
+    elseif cmd == "fakekick" then
+        LocalPlayer:Kick("You have been kicked by the Controller.")
+    elseif cmd == "blur" then
+        local bl = Instance.new("BlurEffect") bl.Name = "ControlledBlur" bl.Size = 24 bl.Parent = Lighting
+    elseif cmd == "unblur" then
+        for _, v in pairs(Lighting:GetChildren()) do if v.Name == "ControlledBlur" then v:Destroy() end end
+    elseif cmd == "screenshake" then
+        shakeEnabled = not shakeEnabled
+    elseif cmd == "force1st" then
+        LocalPlayer.CameraMode = Enum.CameraMode.LockFirstPerson
+    elseif cmd == "fixcam" then
+        LocalPlayer.CameraMode = Enum.CameraMode.Classic
+        shakeEnabled = false
+        Camera.FieldOfView = 70
+    elseif cmd == "slow" then
+        if hum then hum.WalkSpeed = 4 end
+    elseif cmd == "fast" then
+        if hum then hum.WalkSpeed = 100 end
+    elseif cmd == "lowgrav" then
+        workspace.Gravity = 10
+    elseif cmd == "normgrav" then
+        workspace.Gravity = 196.2
+    elseif cmd == "spasm" then
+        spasmEnabled = true
+    elseif cmd == "unglitch" then
+        spasmEnabled = false
+        rainbowEnabled = false
+        drunkEnabled = false
+        antiSitEnabled = false
+        fakeLagEnabled = false
+        confusionEnabled = false
+        ghostEnabled = false
+        if hrp then hrp.Anchored = false end
+        if hum then hum.Sit = false hum.WalkSpeed = 16 end
+        workspace.Gravity = 196.2
+        dogMode = false
+        Camera.FieldOfView = 70
+    elseif cmd == "float" then
+        if hrp then local b = Instance.new("BodyVelocity") b.Name = "FloatVel" b.Velocity = Vector3.new(0,10,0) b.MaxForce = Vector3.new(0,math.huge,0) b.Parent = hrp task.delay(3, function() b:Destroy() end) end
+    elseif cmd == "sink" then
+         if hrp then hrp.CFrame = hrp.CFrame * CFrame.new(0, -10, 0) end
+    elseif cmd == "dog" then
+        dogMode = true
+        if hum then hum.PlatformStand = true end
+    elseif cmd == "undog" then
+        dogMode = false
+        if hum then hum.PlatformStand = false end
+    elseif cmd == "worship" then
+        if hum then hum.Sit = true end
+        if hrp and followTargetPlayer and followTargetPlayer.Character then
+            hrp.CFrame = CFrame.new(hrp.Position, followTargetPlayer.Character.HumanoidRootPart.Position)
+        end
+    elseif cmd == "rocket" then
+        if hrp then 
+            local bv = Instance.new("BodyVelocity")
+            bv.Velocity = Vector3.new(0, 500, 0)
+            bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            bv.Parent = hrp
+            task.wait(1)
+            bv:Destroy()
+        end
+    elseif cmd == "throw_space" then
+        if hrp then 
+            local bv = Instance.new("BodyVelocity")
+            bv.Velocity = Vector3.new(0, 10000, 0)
+            bv.MaxForce = Vector3.new(0, math.huge, 0)
+            bv.Parent = hrp
+            task.delay(1, function() bv:Destroy() end)
+        end
+    elseif cmd == "blockhead" then
+        if char and char:FindFirstChild("Head") and char.Head:FindFirstChild("Mesh") then
+            char.Head.Mesh:Destroy()
+        end
+    elseif cmd == "creepy" then
+        if hum then hum.HipHeight = -1.5 end
+    elseif cmd == "rainbow" then
+        rainbowEnabled = true
+    elseif cmd == "unrainbow" then
+        rainbowEnabled = false
+    elseif cmd == "ghost" then
+        ghostEnabled = true
+    elseif cmd == "unghost" then
+        ghostEnabled = false
+    elseif cmd == "highfov" then
+        Camera.FieldOfView = 120
+    elseif cmd == "lowfov" then
+        Camera.FieldOfView = 10
+    elseif cmd == "normalfov" then
+        Camera.FieldOfView = 70
+    elseif cmd == "drunk" then
+        drunkEnabled = true
+    elseif cmd == "sober" then
+        drunkEnabled = false
+    elseif cmd == "fakelag" then
+        fakeLagEnabled = not fakeLagEnabled
+    elseif cmd == "antisit" then
+        antiSitEnabled = not antiSitEnabled
+    elseif cmd == "mock" then
+        local phrases = {
+            "I AM BEING CONTROLLED HELP!",
+            "SYSTEM OVERRIDE DETECTED",
+            "GET OUT OF MY HEAD",
+            "CRITICAL ERROR",
+            "WHY IS MY BODY MOVING",
+            "VENUS CONTROL ACTIVE"
+        }
+        pcall(function() 
+            Chat:Chat(hrp, phrases[math.random(1, #phrases)], Enum.ChatColor.Red) 
+        end)
+    elseif cmd == "earthquake" then
+        shakeEnabled = true
+        Camera.CFrame = Camera.CFrame * CFrame.Angles(0,0, math.rad(25))
+    elseif cmd == "confuse" then
+        confusionEnabled = true
+    elseif cmd == "clarity" then
+        confusionEnabled = false
+    elseif cmd == "feinvis" then
+        toggleInvisLogic()
+    elseif cmd == "fespeed" then
+        toggleSpeedLogic()
+    elseif cmd == "dance1" then
+        Chat:Chat(char, "/e dance")
+    elseif cmd == "dance2" then
+        Chat:Chat(char, "/e dance2")
+    elseif cmd == "dance3" then
+        Chat:Chat(char, "/e dance3")
+    elseif cmd == "wave" then
+        Chat:Chat(char, "/e wave")
+    elseif cmd == "cheer" then
+        Chat:Chat(char, "/e cheer")
+    elseif cmd == "laugh" then
+        Chat:Chat(char, "/e laugh")
+    elseif cmd == "point" then
+        Chat:Chat(char, "/e point")
+    elseif cmd == "stop_energize" then
+        stopEnergize()
+    elseif cmd == "e_glitchlevitate" then
+        playEnergize("313762630", 1e7, 1, nil, false)
+    elseif cmd == "e_moondance" then
+        playEnergize("45834924", 1, 1, nil, true)
+    elseif cmd == "e_spindance" then
+        playEnergize("429730430", 1, 1, nil, true)
+    elseif cmd == "e_barrelroll" then
+        playEnergize("136801964", 1, 1, nil, true)
+    elseif cmd == "e_insane" then
+        playEnergize("33796059", 1e8, 1, nil, false)
+    elseif cmd == "e_dinowalk" then
+        playEnergize("204328711", 1, 1, nil, true)
+    elseif cmd == "e_floorcrawl" then
+        playEnergize("282574440", 1, 1, nil, true)
+    elseif cmd == "e_helicopter" then
+        playEnergize("259438880", 1e3, 1, nil, false)
+    elseif cmd == "e_dab" then
+        playEnergize("183412246", 1, 1, nil, true)
+    elseif cmd == "e_levitate" then
+        playEnergize("313762630", 1, 1, nil, true)
+    elseif cmd == "e_megainsane" then
+        playEnergize("184574340", 40, 0.5, nil, true)
+    elseif cmd == "e_fullpunch" then
+        playEnergize("204062532", 1, 1, nil, true)
+    elseif cmd == "e_headthrow" then
+        playEnergize("35154961", 1, 1, nil, true)
+    elseif cmd == "e_crouch" then
+        playEnergize("182724289", 1, 1, nil, true)
+    elseif cmd == "e_floatinghead" then
+        playEnergize("121572214", 1, 1, nil, true)
+    elseif cmd == "e_jumpingjacks" then
+        playEnergize("429681631", 1, 1, nil, true)
+    elseif cmd == "e_faint" then
+        playEnergize("181526230", 1, 1, nil, true)
+    elseif cmd == "e_floorfaint" then
+        playEnergize("181525546", 1, 1, nil, true)
+    elseif cmd == "e_superfaint" then
+        playEnergize("181525546", 40, 1, nil, true)
+    elseif cmd == "e_spinner" then
+        playEnergize("188632011", 2, 1, nil, true)
+    elseif cmd == "e_floatsit" then
+        playEnergize("179224234", 1, 1, nil, true)
+    elseif cmd == "e_movingdance" then
+        playEnergize("429703734", 1, 1, nil, true)
+    elseif cmd == "e_weirdmove" then
+        playEnergize("215384594", 1, 1, nil, true)
+    elseif cmd == "e_spindance2" then
+        playEnergize("186934910", 1, 1, nil, true)
+    elseif cmd == "e_bowdown" then
+        playEnergize("204292303", 3, 1, nil, true)
+    elseif cmd == "e_swordslam" then
+        playEnergize("204295235", 1, 1, nil, true)
+    elseif cmd == "e_superpunch" then
+        playEnergize("126753849", 3, 1, nil, true)
+    elseif cmd == "e_fullswing" then
+        playEnergize("218504594", 1, 1, nil, true)
+    elseif cmd == "e_scared" then
+        playEnergize("180612465", 1, 1, nil, true)
+    elseif cmd == "e_armdetach" then
+        playEnergize("33169583", 1e6, 1, nil, true)
+    elseif cmd == "e_swordslice" then
+        playEnergize("35978879", 1, 1, nil, true)
+    elseif cmd == "e_insanearms" then
+        playEnergize("27432691", 1e4, 1, nil, true)
+    elseif cmd == "e_cloneillusion" then
+        playEnergize("215384594", 1e7, 1, nil, true)
+    elseif cmd == "e_loophead" then
+        playEnergize("35154961", 1e6, 1, nil, true)
+    elseif cmd == "e_loopslam" then
+        playEnergize("204295235", 1e4, 1, nil, true)
+    elseif cmd == "e_herojump" then
+        playEnergize("184574340", 1, 1, nil, true)
+    end
+end
+
+local function initSignalListener(master)
+    if signalConnection then signalConnection:Disconnect() end
+    local hum = master.Character and master.Character:FindFirstChild("Humanoid")
+    if hum then
+        local animator = hum:FindFirstChild("Animator") or hum:WaitForChild("Animator")
+        signalConnection = animator.AnimationPlayed:Connect(function(track)
+            local id = track.Animation.AnimationId
+            local cleanID = string.match(id, "%d+")
+            if SIGNALS[cleanID] then
+                executeCommand(SIGNALS[cleanID])
+            end
+        end)
+    end
+    master.CharacterAdded:Connect(function(newChar)
+        local h = newChar:WaitForChild("Humanoid")
+        local a = h:WaitForChild("Animator")
+        if signalConnection then signalConnection:Disconnect() end
+        signalConnection = a.AnimationPlayed:Connect(function(track)
+            local id = track.Animation.AnimationId
+            local cleanID = string.match(id, "%d+")
+            if SIGNALS[cleanID] then
+                executeCommand(SIGNALS[cleanID])
+            end
+        end)
+    end)
+end
+
+local function broadcastSignal(id)
+    if LocalPlayer.Character then
+        local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
+        local animator = hum and hum:FindFirstChild("Animator")
+        if animator then
+            local anim = Instance.new("Animation")
+            anim.AnimationId = "rbxassetid://" .. id
+            local track = animator:LoadAnimation(anim)
+            track.Priority = Enum.AnimationPriority.Action
+            track:Play()
+            task.wait(0.1)
+            track:Stop()
+        end
+    end
+end
+
+Tabs.Connect:CreateSection("Real Controller")
+Tabs.Connect:CreateInput({
+    Name = "Controller (this person will control u)",
+    PlaceholderText = "Type Main Name",
+    Callback = function(value)
+        realControllerInput = value
+    end
+})
+Tabs.Connect:CreateButton({
+    Name = "Connect",
+    Callback = function()
+        local t = findPlayerPartial(realControllerInput)
+        if t and t \~= LocalPlayer then
+            controllerPlayer = t
+            followTargetPlayer = t
+            isControlled = true
+            initSignalListener(t)
+            updateStatus("CONTROLLED (by " .. t.Name .. ")", Color3.fromRGB(255, 50, 50))
+            Notify("Submitted", "Now obeying " .. t.Name)
+            
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and t.Character and t.Character:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = t.Character.HumanoidRootPart.CFrame * CFrame.new(followXOffset, 0, 3)
+            end
+        else
+            Notify("Error", "Player invalid or not found")
+        end
+    end
+})
+
+Tabs.Connect:CreateSection("Fake Controller")
+Tabs.Connect:CreateInput({
+    Name = "flex (will listen to real control)",
+    PlaceholderText = "Type Target Name",
+    Callback = function(value)
+        fakeControllerInput = value
+    end
+})
+Tabs.Connect:CreateButton({
+    Name = "Goto & Spectate",
+    Callback = function()
+        local t = findPlayerPartial(fakeControllerInput)
+        if t then
+            Notify("Spectating", "Target found: " .. t.Name)
+            
+            if t.Character and t.Character:FindFirstChild("Humanoid") then
+                workspace.CurrentCamera.CameraSubject = t.Character.Humanoid
+            end
+            followTargetPlayer = t
+            flingTargetPlayer = t
+        else
+            Notify("Error", "Player not found.")
+        end
+    end
+})
+Tabs.Connect:CreateButton({
+    Name = "Reset Camera",
+    Callback = function()
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            workspace.CurrentCamera.CameraSubject = LocalPlayer.Character.Humanoid
+        end
+    end
+})
+
+Tabs.Controls:CreateSection("Energize Animations")
+Tabs.Controls:CreateToggle({
+    Name = "Glitch Levitate",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770201") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Moon Dance",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770202") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Spin Dance",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770203") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Barrel Roll",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770204") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Insane",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770205") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Dino Walk",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770206") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Floor Crawl",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770207") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Helicopter",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770208") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Dab",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770209") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Levitate",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770210") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Mega Insane",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770211") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Full Punch",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770212") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Head Throw",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770213") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Crouch",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770214") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Floating Head",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770215") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Jumping Jacks",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770216") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Faint",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770217") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Floor Faint",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770218") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Super Faint",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770219") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Spinner",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770220") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Float Sit",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770221") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Moving Dance",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770222") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Weird Move",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770223") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Spin Dance 2",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770224") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Bow Down",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770225") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Sword Slam",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770226") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Super Punch",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770227") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Full Swing",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770228") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Scared",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770229") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Arm Detach",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770230") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Sword Slice",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770231") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Insane Arms",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770232") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Clone Illusion",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770233") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Loop Head",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770234") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Loop Slam",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770235") else broadcastSignal("507770200") end end
+})
+Tabs.Controls:CreateToggle({
+    Name = "Hero Jump",
+    CurrentValue = false,
+    Callback = function(v) if v then broadcastSignal("507770236") else broadcastSignal("507770200") end end
+})
+
+Tabs.Controls:CreateSection("Movement Actions")
+Tabs.Controls:CreateButton({
+    Name = "Bring Controlled",
+    Callback = function() broadcastSignal("507770239") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Stand Mode (Reset)",
+    Callback = function() broadcastSignal("507771019") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Toggle Stand Follow",
+    Callback = function() broadcastSignal("507770058") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Move Left",
+    Callback = function() broadcastSignal("507770059") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Move Right",
+    Callback = function() broadcastSignal("507770060") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Orbit Mode",
+    Callback = function() broadcastSignal("507770015") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Jump",
+    Callback = function() broadcastSignal("507770453") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Sit",
+    Callback = function() broadcastSignal("507770013") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Trip (Ragdoll)",
+    Callback = function() broadcastSignal("507770014") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Freeze",
+    Callback = function() broadcastSignal("507770011") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Unfreeze",
+    Callback = function() broadcastSignal("507770012") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Float Up",
+    Callback = function() broadcastSignal("507770033") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Sink Floor",
+    Callback = function() broadcastSignal("507770034") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Rocket Launch",
+    Callback = function() broadcastSignal("507770038") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Throw to Space",
+    Callback = function() broadcastSignal("507770095") end
+})
+
+Tabs.Controls:CreateSection("Visuals & Effects")
+Tabs.Controls:CreateButton({
+    Name = "Blind Him",
+    Callback = function() broadcastSignal("507765000") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Jumpscare",
+    Callback = function() broadcastSignal("507776879") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Blur Screen",
+    Callback = function() broadcastSignal("507770021") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Unblur Screen",
+    Callback = function() broadcastSignal("507770022") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Screen Shake (Fixed)",
+    Callback = function() broadcastSignal("507770023") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Force 1st Person",
+    Callback = function() broadcastSignal("507770024") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Fix Camera",
+    Callback = function() broadcastSignal("507770025") end
+})
+Tabs.Controls:CreateButton({
+    Name = "High FOV",
+    Callback = function() broadcastSignal("507770045") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Low FOV (Zoom)",
+    Callback = function() broadcastSignal("507770046") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Rainbow Skin",
+    Callback = function() broadcastSignal("507770041") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Stop Rainbow",
+    Callback = function() broadcastSignal("507770042") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Invisible (Ghost)",
+    Callback = function() broadcastSignal("507770043") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Visible (Reset)",
+    Callback = function() broadcastSignal("507770044") end
+})
+
+Tabs.Controls:CreateSection("Body Modifications")
+Tabs.Controls:CreateButton({
+    Name = "Headless",
+    Callback = function() broadcastSignal("507770017") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Remove Arms",
+    Callback = function() broadcastSignal("507770018") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Naked",
+    Callback = function() broadcastSignal("507770032") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Block Head",
+    Callback = function() broadcastSignal("507770039") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Creepy Crawl",
+    Callback = function() broadcastSignal("507770040") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Spinbot",
+    Callback = function() broadcastSignal("507772104") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Spasm/Glitch",
+    Callback = function() broadcastSignal("507770030") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Friend Mode",
+    Callback = function() broadcastSignal("507770035") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Unfriend",
+    Callback = function() broadcastSignal("507770036") end
+})
+
+Tabs.Controls:CreateSection("Destructive")
+Tabs.Controls:CreateButton({
+    Name = "Kill",
+    Callback = function() broadcastSignal("507770818") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Explode",
+    Callback = function() broadcastSignal("507770019") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Void N Fix",
+    Callback = function() broadcastSignal("507771955") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Fling Nearest (To Main)",
+    Callback = function() broadcastSignal("507771666") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Kick",
+    Callback = function() broadcastSignal("507770020") end
+})
+
+Tabs.Controls:CreateSection("Environment")
+Tabs.Controls:CreateButton({
+    Name = "Slow Walk",
+    Callback = function() broadcastSignal("507770026") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Super Speed",
+    Callback = function() broadcastSignal("507770027") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Low Gravity",
+    Callback = function() broadcastSignal("507770028") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Reset Physics/Speed",
+    Callback = function() broadcastSignal("507770031") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Bow",
+    Callback = function() broadcastSignal("507770037") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Free All",
+    Callback = function() broadcastSignal("507766388") end
+})
+
+Tabs.Controls:CreateSection("Trolling")
+Tabs.Controls:CreateButton({
+    Name = "Drunk Mode",
+    Callback = function() broadcastSignal("507770047") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Sober",
+    Callback = function() broadcastSignal("507770048") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Fake Lag",
+    Callback = function() broadcastSignal("507770049") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Anti-Sit (Forced Jump)",
+    Callback = function() broadcastSignal("507770050") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Confuse Inputs",
+    Callback = function() broadcastSignal("507770054") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Clarity",
+    Callback = function() broadcastSignal("507770055") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Send Randomized Msg",
+    Callback = function() broadcastSignal("507770051") end
+})
+
+Tabs.Controls:CreateSection("FE Exploits")
+Tabs.Controls:CreateButton({
+    Name = "Toggle FE Invis (Controlled)",
+    Callback = function() broadcastSignal("507770056") end
+})
+Tabs.Controls:CreateButton({
+    Name = "Toggle Speed Boost (Controlled)",
+    Callback = function() broadcastSignal("507770057") end
+})
+
+Tabs.Fling:CreateSection("Fling Logic")
+Tabs.Fling:CreateToggle({
+    Name = "Toggle Fling Loop",
+    CurrentValue = false,
+    Callback = function(Value)
+        hiddenfling = Value
+        if not hiddenfling then
+            flingTargetPlayer = nil
+        end
+    end
+})
+Tabs.Fling:CreateSlider({
+    Name = "Fling Power",
+    Range = {1000, 50000},
+    Increment = 100,
+    CurrentValue = 10000,
+    Callback = function(Value)
+        flingPower = Value
+    end
+})
+
+Tabs.Executor:CreateSection("Remote Command")
+Tabs.Executor:CreateInput({
+    Name = "Command Name",
+    PlaceholderText = "e.g. kill",
+    Callback = function(value)
+        remoteCmdInput = value
+    end
+})
+Tabs.Executor:CreateButton({
+    Name = "Run on Victim",
+    Callback = function()
+        local foundID = nil
+        for id, cmdName in pairs(SIGNALS) do
+            if cmdName == remoteCmdInput then
+                foundID = id
+                break
+            end
+        end
+        
+        if foundID then
+            broadcastSignal(foundID)
+            Notify("Remote Exec", "Executed: " .. remoteCmdInput)
+        else
+            Notify("Remote Exec", "Command not found in SIGNALS list.")
+        end
+    end
+})
+
+Tabs.Settings:CreateSection("Misc")
+Tabs.Settings:CreateButton({
+    Name = "Toggle Status Bar",
+    Callback = function()
+        StatusGui.Enabled = not StatusGui.Enabled
+    end
+})
+Tabs.Settings:CreateBind({
+    Name = "Toggle GUI",
+    CurrentKeybind = "RightControl",
+    Callback = function()
+        Window:Toggle()
+    end
+})
+Tabs.Settings:CreateButton({
+    Name = "Hide GUI (Mobile Toggle)",
+    Callback = function()
+        Window:Toggle()
+        local toggleGui = Instance.new("ScreenGui")
+        toggleGui.Name = "VenyxMobileButton"
+        toggleGui.ResetOnSpawn = false
+        toggleGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+        local btn = Instance.new("TextButton")
+        btn.Parent = toggleGui
+        btn.Size = UDim2.new(0, 60, 0, 30)
+        btn.Position = UDim2.new(0, 10, 0.5, -15)
+        btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.Text = "OPEN"
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 12
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 6)
+        corner.Parent = btn
+        local dragStart = nil
+        local startPos = nil
+        local isDragging = false
+        local dragInput = nil
+        btn.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                isDragging = true
+                dragStart = input.Position
+                startPos = btn.Position
+                input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then
+                        isDragging = false
+                    end
+                end)
+            end
+        end)
+        btn.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                dragInput = input
+            end
+        end)
+        UserInputService.InputChanged:Connect(function(input)
+            if input == dragInput and isDragging then
+                local delta = input.Position - dragStart
+                btn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            end
+        end)
+        btn.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                if dragStart and (input.Position - dragStart).Magnitude <= 5 then
+                    Window:Toggle()
+                    toggleGui:Destroy()
+                end
+            end
+        end)
+    end
+})
+
+Tabs.Settings:CreateSection("Theme")
+Tabs.Settings:BuildThemeSection()
+
+Tabs.Settings:BuildConfigSection()local followXOffset = 0
 
 local invis_on = false
 local defaultSpeed = 16
